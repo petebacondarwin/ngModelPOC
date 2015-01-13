@@ -19,17 +19,22 @@ describe('NgModelController', function() {
     });
 
 
-    it('should call Transforms#formatValue', function() {
+    it('should call Transforms#format', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'formatValue');
+      spyOn(ctrl.$transforms, 'format');
       ctrl.$setModelValue('xxx');
-      expect(ctrl.$transforms.formatValue).toHaveBeenCalledWith('xxx');
+      expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', false);
+
+      ctrl.$transforms.format.reset();
+      ctrl.$isCollection = true;
+      ctrl.$setModelValue('xxx');
+      expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', true);
     });
 
 
-    it('should assign the result of Transforms#formatValue to the $viewValue', function() {
+    it('should assign the result of Transforms#format to the $viewValue', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'formatValue').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'format').andReturn('yyy');
       ctrl.$setModelValue('xxx');
       expect(ctrl.$viewValue).toEqual('yyy');
     });
@@ -39,7 +44,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'formatValue').andCallFake(function() { throw 'formatter failure'; });
+      spyOn(ctrl.$transforms, 'format').andCallFake(function() { throw 'formatter failure'; });
 
       var spy = jasmine.createSpy('formatError');
       ctrl.$onFormatError(spy);
@@ -54,10 +59,11 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ViewValueChanged');
       ctrl.$onViewValueChanged(spy);
-      spyOn(ctrl.$transforms, 'formatValue').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'format').andReturn('yyy');
       ctrl.$setModelValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });
+
   });
 
 
@@ -80,17 +86,22 @@ describe('NgModelController', function() {
     });
 
 
-    it('should call Transforms#parseValue', function() {
+    it('should call Transforms#parse', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'parseValue').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
       ctrl.$setViewValue('xxx');
-      expect(ctrl.$transforms.parseValue).toHaveBeenCalledWith('xxx');
+      expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', false);
+
+      ctrl.$transforms.parse.reset();
+      ctrl.$isCollection = true;
+      ctrl.$setViewValue('xxx');
+      expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', true);
     });
 
 
-    it('should assign the result of Transforms#parseValue to the $modelValue', function() {
+    it('should assign the result of Transforms#parse to the $modelValue', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'parseValue').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
       ctrl.$setViewValue('xxx');
       expect(ctrl.$modelValue).toEqual('yyy');
     });
@@ -100,7 +111,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'parseValue').andCallFake(function() { throw 'parse failure'; });
+      spyOn(ctrl.$transforms, 'parse').andCallFake(function() { throw 'parse failure'; });
 
       var spy = jasmine.createSpy('formatError');
       ctrl.$onParseError(spy);
@@ -114,7 +125,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ModelValueChanged');
       ctrl.$onModelValueChanged(spy);
-      spyOn(ctrl.$transforms, 'parseValue').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
       ctrl.$setViewValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });

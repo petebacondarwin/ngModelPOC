@@ -4,7 +4,7 @@ function NgModelController() {
   this.$modelValue = undefined;
   this.$viewValue = undefined;
 
-  this.$isMultivalue = false;
+  this.$isCollection = false;
 
   this.$transforms =  new Transforms();
   this.$validity = new Validity();
@@ -28,7 +28,7 @@ NgModelController.prototype.$setModelValue = function(value) {
     this.$modelValueChanged.trigger(this.$modelValue, oldModelValue);
 
     // Transform the value and update the view value
-    this.$viewValue = this.$transforms.formatValue(value);
+    this.$viewValue = this.$transforms.format(value, this.$isCollection);
     this.$viewValueChanged.trigger(this.$viewValue, oldViewValue);
 
   } catch(x) {
@@ -51,7 +51,7 @@ NgModelController.prototype.$setViewValue = function(value) {
     this.$viewValueChanged.trigger(this.$viewValue, oldViewValue);
 
     // Transform the value and update the model value
-    this.$modelValue = this.$transforms.parseValue(value);
+    this.$modelValue = this.$transforms.parse(value, this.$isCollection);
     this.$modelValueChanged.trigger(this.$modelValue, oldModelValue);
 
   } catch(x) {
