@@ -63,7 +63,6 @@ describe('NgModelController', function() {
       ctrl.$setModelValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });
-
   });
 
 

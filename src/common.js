@@ -1,5 +1,6 @@
-function isUndefined(value) {return typeof value === 'undefined';}
-
+function isString(value) { return typeof value === 'string'; }
+function isUndefined(value) { return typeof value === 'undefined'; }
+function identity(value) { return value; }
 
 function EventList() {
   this.handlers = [];
