@@ -6,7 +6,7 @@ function ValidatorError(validator, error, value, index, collection) {
   this.collection = collection;
 }
 
-function Validator(name, validateFn, expectCollection) {
+function Validator(name, validatorFn, expectCollection) {
   this.name = name;
   this.validatorFn = validatorFn;
   this.expectCollection = !!expectCollection;
@@ -14,7 +14,7 @@ function Validator(name, validateFn, expectCollection) {
 
 Validator.prototype.wrappedValidate = function(value, index, collection) {
   var validator = this;
-  $q.when(this.validate(value, index, collection)).then(function(validation) {
+  return Q(this.validatorFn(value, index, collection)).then(function(validation) {
     // Convert boolean to a validation if necessary
     if(isBoolean(validation)) {
       validation = new Validation(validation);
@@ -28,14 +28,14 @@ Validator.prototype.wrappedValidate = function(value, index, collection) {
 
 Validator.prototype.doValidate = function(value, isCollection) {
   if (isCollection === this.expectCollection) {
-      return this.wrappedValidator(value);
+      return this.wrappedValidate(value);
   } else {
     if (this.expectCollection) {
       return this.wrappedValidator([value]).then(function(value) {
         return value[0];
       });
     } else {
-      return $q.all(value.map(function(item, index) {
+      return Q.all(value.map(function(item, index) {
         return this.wrappedValidator(item, index, value);
       }, this));
     }
@@ -55,7 +55,7 @@ Validity.prototype.addValidator = function(name, validatorFn, expectCollection) 
 };
 
 
-Validity.prototype.remove = function(nameOrValidator) {
+Validity.prototype.removeValidator = function(nameOrValidator) {
   var name = isString(nameOrValidator) ? nameOrValidator : nameOrValidator.name;
   delete this.$validators[name];
 };
@@ -65,8 +65,8 @@ Validity.prototype.validate = function(value, isCollection) {
   // ensure that isCollection is strictly a boolean
   isCollection = !!isCollection;
 
-  var validators = Object.keys(this.$validators).map(function(key) { return this.$validators[key]; });
-  return $q(function(resolve, reject) {
+  var validators = Object.keys(this.$validators).map(function(key) { return this.$validators[key]; }, this);
+  return Q.Promise(function(resolve, reject) {
     var isValid = true;
 
     var promises = validators.map(function(validator) {
@@ -89,14 +89,9 @@ Validity.prototype.validate = function(value, isCollection) {
     });
 
     // When all the validations are complete and valid then resolve to valid
-    $q.all(promises).then(function(validations) {
-    })
+    Q.all(promises).then(function() {
+      resolve(isValid);
+    });
   });
-
-  // check the synchronous validations first
-  for(i=0, ii=this.$validators.length; i<ii; ++i) {
-    value = this.$validators[i].doValidator('validator', value, isCollection);
-  }
-  return value;
 };
 

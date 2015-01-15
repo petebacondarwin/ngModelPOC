@@ -28,10 +28,12 @@ describe('USE CASE: date input', function() {
 
     // Initialize the ngModelController that converts numbers to and from week days
     ngModel = new NgModelController();
+
     ngModel.$onModelValueChanged(function(newVal, oldVal) {
       scope.dayNumber = newVal;
       log.push('modelValueChanged: from "' + oldVal + '" to "' + newVal + '"');
     });
+
     ngModel.$onViewValueChanged(function(newVal, oldVal) {
       inputCtrl.value = newVal;
       log.push('viewValueChanged: from "' + oldVal + '" to "' + newVal + '"');

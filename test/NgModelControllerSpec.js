@@ -25,7 +25,7 @@ describe('NgModelController', function() {
       ctrl.$setModelValue('xxx');
       expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', false);
 
-      ctrl.$transforms.format.reset();
+      ctrl.$transforms.format.calls.reset();
       ctrl.$isCollection = true;
       ctrl.$setModelValue('xxx');
       expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', true);
@@ -34,7 +34,7 @@ describe('NgModelController', function() {
 
     it('should assign the result of Transforms#format to the $viewValue', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'format').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'format').and.returnValue('yyy');
       ctrl.$setModelValue('xxx');
       expect(ctrl.$viewValue).toEqual('yyy');
     });
@@ -44,7 +44,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'format').andCallFake(function() { throw 'formatter failure'; });
+      spyOn(ctrl.$transforms, 'format').and.callFake(function() { throw 'formatter failure'; });
 
       var spy = jasmine.createSpy('formatError');
       ctrl.$onFormatError(spy);
@@ -59,7 +59,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ViewValueChanged');
       ctrl.$onViewValueChanged(spy);
-      spyOn(ctrl.$transforms, 'format').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'format').and.returnValue('yyy');
       ctrl.$setModelValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });
@@ -87,11 +87,11 @@ describe('NgModelController', function() {
 
     it('should call Transforms#parse', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', false);
 
-      ctrl.$transforms.parse.reset();
+      ctrl.$transforms.parse.calls.reset();
       ctrl.$isCollection = true;
       ctrl.$setViewValue('xxx');
       expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', true);
@@ -100,7 +100,7 @@ describe('NgModelController', function() {
 
     it('should assign the result of Transforms#parse to the $modelValue', function() {
       var ctrl = new NgModelController();
-      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(ctrl.$modelValue).toEqual('yyy');
     });
@@ -110,7 +110,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'parse').andCallFake(function() { throw 'parse failure'; });
+      spyOn(ctrl.$transforms, 'parse').and.callFake(function() { throw 'parse failure'; });
 
       var spy = jasmine.createSpy('formatError');
       ctrl.$onParseError(spy);
@@ -124,7 +124,7 @@ describe('NgModelController', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ModelValueChanged');
       ctrl.$onModelValueChanged(spy);
-      spyOn(ctrl.$transforms, 'parse').andReturn('yyy');
+      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });
@@ -139,7 +139,7 @@ describe('NgModelController', function() {
       ctrl.$onModelValueChanged(spy);
       ctrl.$setModelValue('one');
       expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.reset();
+      spy.calls.reset();
       ctrl.$setModelValue('two');
       expect(spy).toHaveBeenCalledWith('two', 'one');
     });
@@ -151,7 +151,7 @@ describe('NgModelController', function() {
       var remove = ctrl.$onModelValueChanged(spy);
       ctrl.$setModelValue('one');
       expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.reset();
+      spy.calls.reset();
       remove();
       ctrl.$setModelValue('two');
       expect(spy).not.toHaveBeenCalled();
@@ -179,7 +179,7 @@ describe('NgModelController', function() {
       ctrl.$onViewValueChanged(spy);
       ctrl.$setViewValue('one');
       expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.reset();
+      spy.calls.reset();
       ctrl.$setViewValue('two');
       expect(spy).toHaveBeenCalledWith('two', 'one');
     });
@@ -191,7 +191,7 @@ describe('NgModelController', function() {
       var remove = ctrl.$onViewValueChanged(spy);
       ctrl.$setViewValue('one');
       expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.reset();
+      spy.calls.reset();
       remove();
       ctrl.$setViewValue('two');
       expect(spy).not.toHaveBeenCalled();
