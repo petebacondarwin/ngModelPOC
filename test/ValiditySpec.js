@@ -1,8 +1,11 @@
 describe('Validity', function() {
+
   beforeEach(function() {
     mockPromises.install(Q.makePromise);
     mockPromises.reset();
   })
+
+
   describe('addValidator', function() {
 
     it('should add new Validator objects to the $validators map', function() {
@@ -11,10 +14,10 @@ describe('Validity', function() {
       function validate() {}
 
       v.addValidator('test', validate, false);
-      expect(v.$validators['test']).toEqual(new Validator('test', validate, false));
+      expect(v.validators['test']).toEqual(new Validator('test', validate, false));
 
       v.addValidator('test2', validate, true);
-      expect(v.$validators['test2']).toEqual(new Validator('test2', validate, true));
+      expect(v.validators['test2']).toEqual(new Validator('test2', validate, true));
     });
 
 
@@ -25,10 +28,10 @@ describe('Validity', function() {
       function validate2() {}
 
       v.addValidator('test', validate1, false);
-      expect(v.$validators['test'].validatorFn).toBe(validate1);
+      expect(v.validators['test'].validatorFn).toBe(validate1);
 
       v.addValidator('test', validate2, false);
-      expect(v.$validators['test'].validatorFn).toBe(validate2);
+      expect(v.validators['test'].validatorFn).toBe(validate2);
     });
 
 
@@ -41,7 +44,7 @@ describe('Validity', function() {
       expect(test.name).toEqual('test');
       expect(test.validatorFn).toBe(validate);
       expect(test.expectCollection).toBe(false);
-      expect(v.$validators['test']).toBe(test);
+      expect(v.validators['test']).toBe(test);
     });
   });
 
@@ -57,8 +60,8 @@ describe('Validity', function() {
       v.addValidator('test2', validate, true);
 
       v.removeValidator('test1');
-      expect(v.$validators['test1']).toBeUndefined();
-      expect(v.$validators['test2']).toEqual(new Validator('test2', validate, true));
+      expect(v.validators['test1']).toBeUndefined();
+      expect(v.validators['test2']).toEqual(new Validator('test2', validate, true));
     });
 
     it('should remove the given validator', function() {
@@ -70,13 +73,36 @@ describe('Validity', function() {
       var test2 = v.addValidator('test2', validate, true);
 
       v.removeValidator(test1);
-      expect(v.$validators['test1']).toBeUndefined();
-      expect(v.$validators['test2']).toBe(test2);
+      expect(v.validators['test1']).toBeUndefined();
+      expect(v.validators['test2']).toBe(test2);
     });
   });
 
 
   describe('validate', function() {
+
+    function resolveValidatePromises() {
+      // Keep resolving until we stablize
+
+      function countResolved() {
+        return mockPromises.contracts.filter(function(contract) {
+          return contract.promise.isFulfilled() || contract.promise.isRejected();
+        }).length;
+      }
+
+      var previousCount, currentCount = NaN, count = 0;
+      do {
+        previousCount = currentCount;
+        mockPromises.executeForResolvedPromises();
+        currentCount = countResolved();
+        count++;
+      } while(previousCount !== currentCount && count < 100);
+
+      if(count === 100) {
+        throw 'Unstable promise resolution';
+      }
+    }
+
 
     describe('non-collection', function() {
 
@@ -94,8 +120,6 @@ describe('Validity', function() {
         expect(validateFn1).toHaveBeenCalledWith('xxx', undefined, undefined);
         expect(validateFn2).toHaveBeenCalledWith(['xxx'], undefined, undefined);
       });
-
-
     });
 
 
@@ -118,19 +142,10 @@ describe('Validity', function() {
         expect(validateFn1).toHaveBeenCalledWith('yyy', 1, value);
         expect(validateFn2).toHaveBeenCalledWith(value, undefined, undefined);
       });
-
     });
 
 
     describe('return value', function() {
-
-      function resolveValidatePromises() {
-        // We need to resolve three times as there are up to three layers of promise between
-        // the original validatorFn promise and the final validity.validate() promise
-        mockPromises.executeForResolvedPromises();
-        mockPromises.executeForResolvedPromises();
-        mockPromises.executeForResolvedPromises();
-      }
 
       it('should be a promise that is resolved to true when all the validators resolve to valid', function() {
         var v = new Validity();
@@ -190,6 +205,118 @@ describe('Validity', function() {
 
         // A validator has resolved to invalid so we resolve immediately to invalid
         expect(mockPromises.valueForPromise(isValidPromise)).toBe(false);
+      });
+
+
+      it('should wait for previous calls to validate to resolve before resolving', function() {
+        var v = new Validity();
+
+        function isEven(value) { return (value % 2) === 0; }
+        function isBig(value) { return value > 10; }
+
+        v.addValidator('isEven', isEven);
+        v.addValidator('isBig', isBig);
+
+        v.validate(3);
+        resolveValidatePromises();
+
+        expect(v.isValid).toBe(false);
+      });
+    });
+
+
+    describe('validity update', function() {
+
+      it('should set $isValid to undefined while validation is taking place', function() {
+        var v = new Validity();
+
+        // Force isValid to a defined value
+        v.isValid = true;
+        expect(v.isValid).toBe(true);
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(Q(true));
+        v.addValidator('test1', validateFn1);
+
+        v.validate('xxx');
+        expect(v.isValid).toBeUndefined();
+      });
+
+
+      it('should update the $validations map as each valdition is resolved', function() {
+        var v = new Validity();
+
+        var validation1 = Q.defer();
+        var validation2 = Q.defer();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
+
+        var validator1 = v.addValidator('test1', validateFn1);
+        var validator2 = v.addValidator('test2', validateFn2);
+
+        var isValidPromise = v.validate('xxx');
+
+        expect(v.validations).toEqual({});
+
+        validation1.resolve(true);
+        resolveValidatePromises();
+        expect(v.validations).toEqual({
+          'test1': jasmine.objectContaining({ isValid: true, validator: validator1 })
+        });
+
+        validation2.resolve(false);
+        resolveValidatePromises();
+        expect(v.validations).toEqual({
+          'test1': jasmine.objectContaining({ isValid: true, validator: validator1 }),
+          'test2': jasmine.objectContaining({ isValid: false, validator: validator2 })
+        });
+      });
+
+
+      it('should update the $isValid property when all validators resolve to true', function() {
+        var v = new Validity();
+
+        var validation1 = Q.defer();
+        var validation2 = Q.defer();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
+
+        var validator1 = v.addValidator('test1', validateFn1);
+        var validator2 = v.addValidator('test2', validateFn2);
+
+        v.validate('xxx');
+        expect(v.isValid).toBeUndefined();
+
+        validation1.resolve(true);
+        resolveValidatePromises();
+        expect(v.isValid).toBeUndefined();
+
+        validation2.resolve(true);
+        resolveValidatePromises();
+        expect(v.isValid).toBe(true);
+      });
+
+
+      it('should update the $isValid property when all validators resolve to true', function() {
+
+        var v = new Validity();
+
+        var validation1 = Q.defer();
+        var validation2 = Q.defer();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
+
+        var validator1 = v.addValidator('test1', validateFn1);
+        var validator2 = v.addValidator('test2', validateFn2);
+
+        v.validate('xxx');
+        expect(v.isValid).toBeUndefined();
+
+        validation1.resolve(false);
+        resolveValidatePromises();
+        expect(v.isValid).toBe(false);
       });
     });
   });
