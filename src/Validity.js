@@ -47,10 +47,15 @@ Validator.prototype.doValidate = function(value, isCollection) {
 };
 
 
+function ValidationResults(isValid, validations, isComplete) {
+  this.isValid = isValid;
+  this.validations = validations;
+  this.isComplete = isComplete;
+}
+
+
 function Validity() {
   this.validators = {};
-  this.validations = {};
-  this.isValid = undefined;
 }
 
 Validity.prototype.addValidator = function(name, validatorFn, expectCollection) {
@@ -68,14 +73,15 @@ Validity.prototype.removeValidator = function(nameOrValidator) {
 
 Validity.prototype.validate = function(value, isCollection) {
   var validity = this;
+  var validations = {};
+  var validationResults;
+  var isComplete;
 
   // ensure that isCollection is strictly a boolean
   isCollection = !!isCollection;
 
-  // Set the validity state to undefined to indicate that we are pending validation
-  validity.isValid = undefined;
+  var validators = Object.keys(validity.validators).map(function(key) { return validity.validators[key]; }, this);
 
-  var validators = Object.keys(this.validators).map(function(key) { return this.validators[key]; }, this);
   return Q.Promise(function(resolve, reject) {
 
     var promises = validators.map(function(validator) {
@@ -83,12 +89,12 @@ Validity.prototype.validate = function(value, isCollection) {
       // Run each validator and collect up the promises
       return validator.doValidate(value, isCollection).then(function(validation) {
 
-        validity.validations[validator.name] = validation;
+        validations[validator.name] = validation;
 
         // If any of these validations fail then immediately resolve to invalid
-        if (!validation.isValid) {
-          // validity.isValid = false;
-          resolve(false);
+        if (!validation.isValid && !validationResults) {
+          validationResults = new ValidationResults(false, validations, isComplete);
+          resolve(validationResults);
         }
 
         return validation;
@@ -96,16 +102,13 @@ Validity.prototype.validate = function(value, isCollection) {
     });
 
     // When all the validations are complete and valid then resolve to valid
-    Q.all(promises).then(function(values) {
-      // validity.isValid = true;
-      resolve(true);
+    isComplete = Q.all(promises).then(function(values) {
+      validationResults = validationResults || new ValidationResults(true, validations, isComplete);
+      resolve(validationResults);
     }, function(error) {
       reject(error);
     });
 
-  }).then(function(value) {
-    validity.isValid = value;
-    return value;
   });
 };
 

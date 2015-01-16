@@ -87,7 +87,7 @@ describe('Validity', function() {
       function countResolved() {
         return mockPromises.contracts.filter(function(contract) {
           return contract.promise.isFulfilled() || contract.promise.isRejected();
-        }).length;
+        }).length + mockPromises.contracts.all().length;
       }
 
       var previousCount, currentCount = NaN, count = 0;
@@ -104,7 +104,7 @@ describe('Validity', function() {
     }
 
 
-    describe('non-collection', function() {
+    xdescribe('non-collection', function() {
 
       it('should call the validateFn on each validator, passing in the value', function() {
         var v = new Validity();
@@ -123,7 +123,7 @@ describe('Validity', function() {
     });
 
 
-    describe('collection', function() {
+    xdescribe('collection', function() {
 
       it('should call the validateFn on each validator, passing in the value', function() {
         var v = new Validity();
@@ -173,7 +173,7 @@ describe('Validity', function() {
         resolveValidatePromises();
 
         // We only have one validation so this is still undefined
-        expect(mockPromises.valueForPromise(isValidPromise)).toBe(true);
+        expect(mockPromises.valueForPromise(isValidPromise).isValid).toBe(true);
       });
 
 
@@ -204,45 +204,11 @@ describe('Validity', function() {
         resolveValidatePromises();
 
         // A validator has resolved to invalid so we resolve immediately to invalid
-        expect(mockPromises.valueForPromise(isValidPromise)).toBe(false);
+        expect(mockPromises.valueForPromise(isValidPromise).isValid).toBe(false);
       });
 
 
-      it('should wait for previous calls to validate to resolve before resolving', function() {
-        var v = new Validity();
-
-        function isEven(value) { return (value % 2) === 0; }
-        function isBig(value) { return value > 10; }
-
-        v.addValidator('isEven', isEven);
-        v.addValidator('isBig', isBig);
-
-        v.validate(3);
-        resolveValidatePromises();
-
-        expect(v.isValid).toBe(false);
-      });
-    });
-
-
-    describe('validity update', function() {
-
-      it('should set $isValid to undefined while validation is taking place', function() {
-        var v = new Validity();
-
-        // Force isValid to a defined value
-        v.isValid = true;
-        expect(v.isValid).toBe(true);
-
-        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(Q(true));
-        v.addValidator('test1', validateFn1);
-
-        v.validate('xxx');
-        expect(v.isValid).toBeUndefined();
-      });
-
-
-      it('should update the $validations map as each valdition is resolved', function() {
+      it('should update the validations map as each validation is resolved', function() {
         var v = new Validity();
 
         var validation1 = Q.defer();
@@ -256,68 +222,57 @@ describe('Validity', function() {
 
         var isValidPromise = v.validate('xxx');
 
-        expect(v.validations).toEqual({});
-
-        validation1.resolve(true);
-        resolveValidatePromises();
-        expect(v.validations).toEqual({
-          'test1': jasmine.objectContaining({ isValid: true, validator: validator1 })
-        });
-
+        // A validation has resolved as invalid so the promise resolves immediately
         validation2.resolve(false);
         resolveValidatePromises();
-        expect(v.validations).toEqual({
+
+        var validations = mockPromises.valueForPromise(isValidPromise).validations;
+        expect(validations).toEqual({
+          'test2': jasmine.objectContaining({ isValid: false, validator: validator2 })
+        });
+
+        // Now an additional async validation resolves after the fact, it gets added to the collection
+        validation1.resolve(true);
+        resolveValidatePromises();
+        expect(validations).toEqual({
           'test1': jasmine.objectContaining({ isValid: true, validator: validator1 }),
           'test2': jasmine.objectContaining({ isValid: false, validator: validator2 })
         });
       });
 
 
-      it('should update the $isValid property when all validators resolve to true', function() {
+      it('should resolve the isComplete promise when all the validators have resolved', function() {
         var v = new Validity();
 
         var validation1 = Q.defer();
         var validation2 = Q.defer();
 
-        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
-        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
+        var validateFn1 = function() { return validation1.promise};
+        var validateFn2 = function() { return validation2.promise};
 
         var validator1 = v.addValidator('test1', validateFn1);
         var validator2 = v.addValidator('test2', validateFn2);
 
-        v.validate('xxx');
-        expect(v.isValid).toBeUndefined();
+        var isValidPromise = v.validate('xxx');
 
+        // A validation has resolved as invalid so the promise resolves immediately
+        validation2.resolve(false);
+        resolveValidatePromises();
+
+        var isCompletePromise = mockPromises.valueForPromise(isValidPromise).isComplete;
+        var isComplete = false;
+        isCompletePromise.then(function() {
+          isComplete = true;
+        });
+        expect(isComplete).toBe(false);
+
+        // Now an additional async validation resolves after the fact, it completes all the validators
         validation1.resolve(true);
         resolveValidatePromises();
-        expect(v.isValid).toBeUndefined();
-
-        validation2.resolve(true);
-        resolveValidatePromises();
-        expect(v.isValid).toBe(true);
-      });
-
-
-      it('should update the $isValid property when all validators resolve to true', function() {
-
-        var v = new Validity();
-
-        var validation1 = Q.defer();
-        var validation2 = Q.defer();
-
-        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
-        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
-
-        var validator1 = v.addValidator('test1', validateFn1);
-        var validator2 = v.addValidator('test2', validateFn2);
-
-        v.validate('xxx');
-        expect(v.isValid).toBeUndefined();
-
-        validation1.resolve(false);
-        resolveValidatePromises();
-        expect(v.isValid).toBe(false);
+        expect(isComplete).toBe(true);
       });
     });
+
+
   });
 });
