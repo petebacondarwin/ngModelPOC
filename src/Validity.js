@@ -1,3 +1,7 @@
+function Validation(isValid) {
+  this.isValid = isValid;
+}
+
 function ValidatorError(validator, error, value, index, collection) {
   this.validator = validator;
   this.error = error;
@@ -31,12 +35,12 @@ Validator.prototype.doValidate = function(value, isCollection) {
       return this.wrappedValidate(value);
   } else {
     if (this.expectCollection) {
-      return this.wrappedValidator([value]).then(function(value) {
+      return this.wrappedValidate([value]).then(function(value) {
         return value[0];
       });
     } else {
       return Q.all(value.map(function(item, index) {
-        return this.wrappedValidator(item, index, value);
+        return this.wrappedValidate(item, index, value);
       }, this));
     }
   }
@@ -62,6 +66,7 @@ Validity.prototype.removeValidator = function(nameOrValidator) {
 
 
 Validity.prototype.validate = function(value, isCollection) {
+  var validity = this;
   // ensure that isCollection is strictly a boolean
   isCollection = !!isCollection;
 
@@ -74,7 +79,7 @@ Validity.prototype.validate = function(value, isCollection) {
       // Run each validator and collect up the promises
       return validator.doValidate(value, isCollection).then(function(validation) {
 
-        this.$validations[validation.name] = validation;
+        validity.$validations[validator.name] = validation;
 
         // Update the isValid flag
         isValid = isValid && validation.isValid;
@@ -89,8 +94,10 @@ Validity.prototype.validate = function(value, isCollection) {
     });
 
     // When all the validations are complete and valid then resolve to valid
-    Q.all(promises).then(function() {
+    Q.all(promises).then(function(values) {
       resolve(isValid);
+    }, function(error) {
+      reject(error);
     });
   });
 };

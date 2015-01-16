@@ -1,5 +1,6 @@
 function isString(value) { return typeof value === 'string'; }
 function isUndefined(value) { return typeof value === 'undefined'; }
+function isBoolean(value) { return typeof value === 'boolean'; }
 function identity(value) { return value; }
 
 function EventList() {

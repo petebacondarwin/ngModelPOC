@@ -77,27 +77,120 @@ describe('Validity', function() {
 
 
   describe('validate', function() {
+
     describe('non-collection', function() {
+
       it('should call the validateFn on each validator, passing in the value', function() {
         var v = new Validity();
+
         var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(Q(true));
         var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(Q(false));
+
+        v.addValidator('test1', validateFn1);
+        v.addValidator('test2', validateFn2, true); // test2 expects a collection
+
+        var isValidPromise = v.validate('xxx');
+
+        expect(validateFn1).toHaveBeenCalledWith('xxx', undefined, undefined);
+        expect(validateFn2).toHaveBeenCalledWith(['xxx'], undefined, undefined);
+      });
+
+
+    });
+
+
+    describe('collection', function() {
+
+      it('should call the validateFn on each validator, passing in the value', function() {
+        var v = new Validity();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(Q(true));
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(Q(false));
+
+        v.addValidator('test1', validateFn1);
+        v.addValidator('test2', validateFn2, true); // test2 expects a collection
+
+        var value = ['xxx', 'yyy'];
+
+        var isValidPromise = v.validate(value, true);
+
+        expect(validateFn1).toHaveBeenCalledWith('xxx', 0, value);
+        expect(validateFn1).toHaveBeenCalledWith('yyy', 1, value);
+        expect(validateFn2).toHaveBeenCalledWith(value, undefined, undefined);
+      });
+
+    });
+
+
+    describe('return value', function() {
+
+      function resolveValidatePromises() {
+        // We need to resolve three times as there are up to three layers of promise between
+        // the original validatorFn promise and the final validity.validate() promise
+        mockPromises.executeForResolvedPromises();
+        mockPromises.executeForResolvedPromises();
+        mockPromises.executeForResolvedPromises();
+      }
+
+      it('should be a promise that is resolved to true when all the validators resolve to valid', function() {
+        var v = new Validity();
+
+        var validation1 = Q.defer();
+        var validation2 = Q.defer();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
 
         v.addValidator('test1', validateFn1);
         v.addValidator('test2', validateFn2);
 
         var isValidPromise = v.validate('xxx');
 
-        mockPromises.executeForPromise(isValidPromise);
+        validation1.resolve(true);
+        mockPromises.executeForPromise(validation1.promise);
+        resolveValidatePromises();
 
-        expect(validateFn1).toHaveBeenCalledWith('xxx', undefined, undefined);
-        expect(validateFn2).toHaveBeenCalledWith('xxx', undefined, undefined);
+        // There is still a validation pending so this is still undefined
+        expect(mockPromises.valueForPromise(isValidPromise)).toBeUndefined();
+
+        validation2.resolve(true);
+        mockPromises.executeForPromise(validation2.promise);
+        resolveValidatePromises();
+
+        // We only have one validation so this is still undefined
+        expect(mockPromises.valueForPromise(isValidPromise)).toBe(true);
       });
-    });
 
 
-    describe('collection', function() {
+      it('should be a promise that is resolved to false as soon as any validator resolves to invalid', function() {
+        var v = new Validity();
 
+        var validation1 = Q.defer();
+        var validation2 = Q.defer();
+        var validation3 = Q.defer();
+
+        var validateFn1 = jasmine.createSpy('validateFn1').and.returnValue(validation1.promise);
+        var validateFn2 = jasmine.createSpy('validateFn2').and.returnValue(validation2.promise);
+        var validateFn3 = jasmine.createSpy('validateFn3').and.returnValue(validation3.promise);
+
+        v.addValidator('test1', validateFn1);
+        v.addValidator('test2', validateFn2);
+        v.addValidator('test3', validateFn3);
+
+        var isValidPromise = v.validate('xxx');
+
+        validation1.resolve(true);
+        resolveValidatePromises();
+
+        // There are still two validations pending so this is still undefined
+        expect(mockPromises.valueForPromise(isValidPromise)).toBeUndefined();
+
+        validation2.resolve(false);
+        resolveValidatePromises();
+
+        // A validator has resolved to invalid so we resolve immediately to invalid
+        expect(mockPromises.valueForPromise(isValidPromise)).toBe(false);
+      });
     });
   });
 });
