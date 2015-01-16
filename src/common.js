@@ -6,7 +6,7 @@ function identity(value) { return value; }
 function EventList() {
   this.handlers = [];
 }
-EventList.prototype.add = function(handler) {
+EventList.prototype.addHandler = function(handler) {
   var handlers = this.handlers;
   handlers.push(handler);
   return function remove() {
