@@ -10,10 +10,10 @@ describe('NgModelController', function() {
     });
 
 
-    it('should trigger the ModelValueChanged event', function() {
+    it('should trigger the formatModel event', function() {
       var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ModelValueChanged');
-      ctrl.$onModelValueChanged(spy);
+      var spy = jasmine.createSpy('formatModel');
+      ctrl.$formatModel.addHandler(spy);
       ctrl.$setModelValue('xxx');
       expect(spy).toHaveBeenCalledWith('xxx', undefined);
     });
@@ -47,7 +47,7 @@ describe('NgModelController', function() {
       spyOn(ctrl.$transforms, 'format').and.callFake(function() { throw 'formatter failure'; });
 
       var spy = jasmine.createSpy('formatError');
-      ctrl.$onFormatError(spy);
+      ctrl.$formatError.addHandler(spy);
       ctrl.$setModelValue('model after');
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
@@ -58,7 +58,7 @@ describe('NgModelController', function() {
     it('should trigger the ViewValueChanged event if the format succeeded', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ViewValueChanged');
-      ctrl.$onViewValueChanged(spy);
+      ctrl.$viewValueChanged.addHandler(spy);
       spyOn(ctrl.$transforms, 'format').and.returnValue('yyy');
       ctrl.$setModelValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
@@ -76,10 +76,10 @@ describe('NgModelController', function() {
     });
 
 
-    it('should trigger the ViewValueChanged event', function() {
+    it('should trigger the parseView event', function() {
       var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ViewValueChanged');
-      ctrl.$onViewValueChanged(spy);
+      var spy = jasmine.createSpy('parseView');
+      ctrl.$parseView.addHandler(spy);
       ctrl.$setViewValue('xxx');
       expect(spy).toHaveBeenCalledWith('xxx', undefined);
     });
@@ -112,101 +112,22 @@ describe('NgModelController', function() {
       ctrl.$modelValue = 'model before';
       spyOn(ctrl.$transforms, 'parse').and.callFake(function() { throw 'parse failure'; });
 
-      var spy = jasmine.createSpy('formatError');
-      ctrl.$onParseError(spy);
+      var spy = jasmine.createSpy('parseError');
+      ctrl.$parseError.addHandler(spy);
       ctrl.$setViewValue('view after');
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
       expect(spy).toHaveBeenCalledWith('parse failure');
     });
 
+
     it('should trigger the ModelValueChanged event if the format succeeded', function() {
       var ctrl = new NgModelController();
       var spy = jasmine.createSpy('ModelValueChanged');
-      ctrl.$onModelValueChanged(spy);
+      ctrl.$modelValueChanged.addHandler(spy);
       spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
-    });
-  });
-
-
-  describe('$onModelValueChanged', function() {
-
-    it('should add a given handler that is called when the model value has changed', function() {
-      var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ModelValueChanged');
-      ctrl.$onModelValueChanged(spy);
-      ctrl.$setModelValue('one');
-      expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.calls.reset();
-      ctrl.$setModelValue('two');
-      expect(spy).toHaveBeenCalledWith('two', 'one');
-    });
-
-
-    it('should return a function that will remove the handler so that is no longer called', function() {
-      var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ModelValueChanged');
-      var remove = ctrl.$onModelValueChanged(spy);
-      ctrl.$setModelValue('one');
-      expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.calls.reset();
-      remove();
-      ctrl.$setModelValue('two');
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-
-    it('should call all handlers that are registered', function() {
-      var ctrl = new NgModelController();
-      var spy1 = jasmine.createSpy('ModelValueChanged 1');
-      var spy2 = jasmine.createSpy('ModelValueChanged 2');
-      ctrl.$onModelValueChanged(spy1);
-      ctrl.$onModelValueChanged(spy2);
-      ctrl.$setModelValue('one');
-      expect(spy1).toHaveBeenCalledWith('one', undefined);
-      expect(spy2).toHaveBeenCalledWith('one', undefined);
-    });
-  });
-
-
-  describe('$onViewValueChanged', function() {
-
-    it('should add a given handler that is called when the model value has changed', function() {
-      var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ViewValueChanged');
-      ctrl.$onViewValueChanged(spy);
-      ctrl.$setViewValue('one');
-      expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.calls.reset();
-      ctrl.$setViewValue('two');
-      expect(spy).toHaveBeenCalledWith('two', 'one');
-    });
-
-
-    it('should return a function that will remove the handler so that is no longer called', function() {
-      var ctrl = new NgModelController();
-      var spy = jasmine.createSpy('ViewValueChanged');
-      var remove = ctrl.$onViewValueChanged(spy);
-      ctrl.$setViewValue('one');
-      expect(spy).toHaveBeenCalledWith('one', undefined);
-      spy.calls.reset();
-      remove();
-      ctrl.$setViewValue('two');
-      expect(spy).not.toHaveBeenCalled();
-    });
-
-
-    it('should call all handlers that are registered', function() {
-      var ctrl = new NgModelController();
-      var spy1 = jasmine.createSpy('ViewValueChanged 1');
-      var spy2 = jasmine.createSpy('ViewValueChanged 2');
-      ctrl.$onViewValueChanged(spy1);
-      ctrl.$onViewValueChanged(spy2);
-      ctrl.$setViewValue('one');
-      expect(spy1).toHaveBeenCalledWith('one', undefined);
-      expect(spy2).toHaveBeenCalledWith('one', undefined);
     });
   });
 

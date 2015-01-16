@@ -9,11 +9,12 @@ function NgModelController() {
   this.$transforms =  new Transforms();
   this.$validity = new Validity();
 
-  this.$modelValueChanged = new EventList();
-  this.$viewValueChanged = new EventList();
-
-  this.$formatError = new EventList();
+  this.$parseView = new EventList();
   this.$parseError = new EventList();
+  this.$modelValueChanged = new EventList();
+  this.$formatModel = new EventList();
+  this.$formatError = new EventList();
+  this.$viewValueChanged = new EventList();
 }
 
 
@@ -25,7 +26,7 @@ NgModelController.prototype.$setModelValue = function(value) {
 
     // Update the model value
     this.$modelValue = value;
-    this.$modelValueChanged.trigger(this.$modelValue, oldModelValue);
+    this.$formatModel.trigger(this.$modelValue, oldModelValue);
 
     // Transform the value and update the view value
     this.$viewValue = this.$transforms.format(value, this.$isCollection);
@@ -48,7 +49,7 @@ NgModelController.prototype.$setViewValue = function(value) {
 
     // Update the view value
     this.$viewValue = value;
-    this.$viewValueChanged.trigger(this.$viewValue, oldViewValue);
+    this.$parseView.trigger(this.$viewValue, oldViewValue);
 
     // Transform the value and update the model value
     this.$modelValue = this.$transforms.parse(value, this.$isCollection);
@@ -60,26 +61,6 @@ NgModelController.prototype.$setViewValue = function(value) {
     this.$viewValue = oldViewValue;
     this.$viewValueChanged.trigger(value, this.$viewValue);
   }};
-
-
-NgModelController.prototype.$onModelValueChanged = function(handler) {
-  return this.$modelValueChanged.add(handler);
-};
-
-
-NgModelController.prototype.$onViewValueChanged = function(handler) {
-  return this.$viewValueChanged.add(handler);
-};
-
-
-NgModelController.prototype.$onFormatError = function(handler) {
-  return this.$formatError.add(handler);
-};
-
-
-NgModelController.prototype.$onParseError = function(handler) {
-  return this.$parseError.add(handler);
-};
 
 
 NgModelController.prototype.$isEmpty = function(value) {
