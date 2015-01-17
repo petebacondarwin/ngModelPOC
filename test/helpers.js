@@ -1,4 +1,4 @@
-function resolveValidatePromises() {
+function resolveAllPromises() {
   // Keep resolving until we stablize
 
   function countResolved() {

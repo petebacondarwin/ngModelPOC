@@ -140,14 +140,14 @@ describe('Validity', function() {
 
         validation1.resolve(true);
         mockPromises.executeForPromise(validation1.promise);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         // There is still a validation pending so this is still undefined
         expect(mockPromises.valueForPromise(isValidPromise)).toBeUndefined();
 
         validation2.resolve(true);
         mockPromises.executeForPromise(validation2.promise);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         // We only have one validation so this is still undefined
         expect(mockPromises.valueForPromise(isValidPromise).isValid).toBe(true);
@@ -172,13 +172,13 @@ describe('Validity', function() {
         var isValidPromise = v.validate('xxx');
 
         validation1.resolve(true);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         // There are still two validations pending so this is still undefined
         expect(mockPromises.valueForPromise(isValidPromise)).toBeUndefined();
 
         validation2.resolve(false);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         // A validator has resolved to invalid so we resolve immediately to invalid
         expect(mockPromises.valueForPromise(isValidPromise).isValid).toBe(false);
@@ -201,7 +201,7 @@ describe('Validity', function() {
 
         // A validation has resolved as invalid so the promise resolves immediately
         validation2.resolve(false);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         var validations = mockPromises.valueForPromise(isValidPromise).validations;
         expect(validations).toEqual({
@@ -210,7 +210,7 @@ describe('Validity', function() {
 
         // Now an additional async validation resolves after the fact, it gets added to the collection
         validation1.resolve(true);
-        resolveValidatePromises();
+        resolveAllPromises();
         expect(validations).toEqual({
           'test1': jasmine.objectContaining({ isValid: true, validator: validator1 }),
           'test2': jasmine.objectContaining({ isValid: false, validator: validator2 })
@@ -234,7 +234,7 @@ describe('Validity', function() {
 
         // A validation has resolved as invalid so the promise resolves immediately
         validation2.resolve(false);
-        resolveValidatePromises();
+        resolveAllPromises();
 
         var isCompletePromise = mockPromises.valueForPromise(isValidPromise).isComplete;
         var isComplete = false;
@@ -245,7 +245,7 @@ describe('Validity', function() {
 
         // Now an additional async validation resolves after the fact, it completes all the validators
         validation1.resolve(true);
-        resolveValidatePromises();
+        resolveAllPromises();
         expect(isComplete).toBe(true);
       });
     });

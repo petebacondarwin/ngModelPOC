@@ -94,7 +94,7 @@ describe('USE CASE: date input', function() {
     inputCtrl.value = 'Sunday';
     inputCtrl.$change.trigger(inputCtrl.value);
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'parseView: from "undefined" to "Sunday"',
@@ -107,7 +107,7 @@ describe('USE CASE: date input', function() {
     inputCtrl.value = 'Monday';
     inputCtrl.$change.trigger(inputCtrl.value);
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'parseView: from "Sunday" to "Monday"',
@@ -126,7 +126,7 @@ describe('USE CASE: date input', function() {
     scope.dayNumber = 5;
     scope.$digest();
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'formatModel: from "undefined" to "5"',
@@ -141,7 +141,7 @@ describe('USE CASE: date input', function() {
     scope.dayNumber = 2;
     scope.$digest();
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'formatModel: from "5" to "2"',
@@ -166,7 +166,7 @@ describe('USE CASE: date input', function() {
     inputCtrl.value = 'Monday';
     inputCtrl.$change.trigger(inputCtrl.value);
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'parseView: from "undefined" to "Monday"',
@@ -181,7 +181,7 @@ describe('USE CASE: date input', function() {
     inputCtrl.value = 'Badday';
     inputCtrl.$change.trigger(inputCtrl.value);
 
-    resolveValidatePromises();
+    resolveAllPromises();
 
     expect(log).toEqual([
       'parseView: from "Monday" to "null"',
