@@ -3,7 +3,7 @@ describe('Validity', function() {
   beforeEach(function() {
     mockPromises.install(Q.makePromise);
     mockPromises.reset();
-  })
+  });
 
 
   describe('addValidator', function() {
@@ -81,30 +81,7 @@ describe('Validity', function() {
 
   describe('validate', function() {
 
-    function resolveValidatePromises() {
-      // Keep resolving until we stablize
-
-      function countResolved() {
-        return mockPromises.contracts.filter(function(contract) {
-          return contract.promise.isFulfilled() || contract.promise.isRejected();
-        }).length + mockPromises.contracts.all().length;
-      }
-
-      var previousCount, currentCount = NaN, count = 0;
-      do {
-        previousCount = currentCount;
-        mockPromises.executeForResolvedPromises();
-        currentCount = countResolved();
-        count++;
-      } while(previousCount !== currentCount && count < 100);
-
-      if(count === 100) {
-        throw 'Unstable promise resolution';
-      }
-    }
-
-
-    xdescribe('non-collection', function() {
+    describe('non-collection', function() {
 
       it('should call the validateFn on each validator, passing in the value', function() {
         var v = new Validity();
@@ -123,7 +100,7 @@ describe('Validity', function() {
     });
 
 
-    xdescribe('collection', function() {
+    describe('collection', function() {
 
       it('should call the validateFn on each validator, passing in the value', function() {
         var v = new Validity();
