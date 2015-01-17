@@ -5,7 +5,7 @@ describe('USE CASE: date input', function() {
     0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday',
     'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6
   };
-  var dayNumberFn = function(value) { return WEEKMAP[value]; };
+  var dayNumberFn = function(value) { return value !== null ? WEEKMAP[value] : null; };
 
   function Scope() {
     this.$$watches = [];
@@ -90,9 +90,6 @@ describe('USE CASE: date input', function() {
 
     setup();
 
-    expect(scope.dayNumber).toBeUndefined();
-    expect(inputCtrl.value).toBeUndefined();
-
     // Simulate a date selection
     inputCtrl.value = 'Sunday';
     inputCtrl.$change.trigger(inputCtrl.value);
@@ -106,14 +103,13 @@ describe('USE CASE: date input', function() {
     expect(scope.dayNumber).toEqual(6);
 
     // Simulate a date selection
+    log = [];
     inputCtrl.value = 'Monday';
     inputCtrl.$change.trigger(inputCtrl.value);
 
     resolveValidatePromises();
 
     expect(log).toEqual([
-      'parseView: from "undefined" to "Sunday"',
-      'modelValueChanged: from "undefined" to "6"',
       'parseView: from "Sunday" to "Monday"',
       'modelValueChanged: from "6" to "0"'
     ]);
@@ -125,9 +121,6 @@ describe('USE CASE: date input', function() {
   it('should update the input element when the scope changes', function() {
 
     setup();
-
-    expect(scope.dayNumber).toBeUndefined();
-    expect(inputCtrl.value).toBeUndefined();
 
     // Simulate a scope change
     scope.dayNumber = 5;
@@ -144,19 +137,57 @@ describe('USE CASE: date input', function() {
 
 
     // Simulate another scope change
+    log = [];
     scope.dayNumber = 2;
     scope.$digest();
 
     resolveValidatePromises();
 
     expect(log).toEqual([
-      'formatModel: from "undefined" to "5"',
-      'viewValueChanged: from "undefined" to "Saturday"',
       'formatModel: from "5" to "2"',
       'viewValueChanged: from "Saturday" to "Wednesday"'
     ]);
 
     expect(inputCtrl.value).toEqual('Wednesday');
 
+  });
+
+
+  it("should set the model to null if the view is invalid", function() {
+
+    setup();
+
+    // Add a validator
+    ngModel.$validity.addValidator('day', function(viewValue) {
+      return !isUndefined(WEEKMAP[viewValue]);
+    });
+
+    // Simulate a valid date selection
+    inputCtrl.value = 'Monday';
+    inputCtrl.$change.trigger(inputCtrl.value);
+
+    resolveValidatePromises();
+
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Monday"',
+      'modelValueChanged: from "undefined" to "0"'
+    ]);
+
+    expect(scope.dayNumber).toEqual(0);
+
+
+    // Simulate an invalid date selection
+    log = [];
+    inputCtrl.value = 'Badday';
+    inputCtrl.$change.trigger(inputCtrl.value);
+
+    resolveValidatePromises();
+
+    expect(log).toEqual([
+      'parseView: from "Monday" to "null"',
+      'modelValueChanged: from "0" to "null"'
+    ]);
+
+    expect(scope.dayNumber).toEqual(null);
   });
 });
