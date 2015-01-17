@@ -1,3 +1,63 @@
+function Validity() {
+  this.$validators = {};
+}
+
+Validity.prototype.addValidator = function(name, validatorFn, expectCollection) {
+  var validator = new Validator(name, validatorFn, expectCollection);
+  this.$validators[name] = validator;
+  return validator;
+};
+
+
+Validity.prototype.removeValidator = function(nameOrValidator) {
+  var name = isString(nameOrValidator) ? nameOrValidator : nameOrValidator.name;
+  delete this.$validators[name];
+};
+
+
+Validity.prototype.validate = function(value, isCollection) {
+  var validity = this;
+  var validations = {};
+  var validationResults;
+  var isComplete;
+
+  // ensure that isCollection is strictly a boolean
+  isCollection = !!isCollection;
+
+  var validators = Object.keys(validity.$validators).map(function(key) { return validity.$validators[key]; }, this);
+
+  return Q.Promise(function(resolve, reject) {
+
+    var promises = validators.map(function(validator) {
+
+      // Run each validator and collect up the promises
+      return validator.doValidate(value, isCollection).then(function(validation) {
+
+        validations[validator.name] = validation;
+
+        // If any of these validations fail then immediately resolve to invalid
+        if (!validation.isValid && !validationResults) {
+          validationResults = new ValidationResults(false, validations, isComplete);
+          resolve(validationResults);
+        }
+
+        return validation;
+      });
+    });
+
+    // When all the validations are complete and valid then resolve to valid
+    isComplete = Q.all(promises).then(function(values) {
+      validationResults = validationResults || new ValidationResults(true, validations, isComplete);
+      resolve(validationResults);
+      return validationResults;
+    }, function(error) {
+      reject(error);
+    });
+
+  });
+};
+
+
 function Validation(isValid) {
   this.isValid = isValid;
 }
@@ -52,64 +112,3 @@ function ValidationResults(isValid, validations, isComplete) {
   this.validations = validations;
   this.isComplete = isComplete;
 }
-
-
-function Validity() {
-  this.validators = {};
-}
-
-Validity.prototype.addValidator = function(name, validatorFn, expectCollection) {
-  var validator = new Validator(name, validatorFn, expectCollection);
-  this.validators[name] = validator;
-  return validator;
-};
-
-
-Validity.prototype.removeValidator = function(nameOrValidator) {
-  var name = isString(nameOrValidator) ? nameOrValidator : nameOrValidator.name;
-  delete this.validators[name];
-};
-
-
-Validity.prototype.validate = function(value, isCollection) {
-  var validity = this;
-  var validations = {};
-  var validationResults;
-  var isComplete;
-
-  // ensure that isCollection is strictly a boolean
-  isCollection = !!isCollection;
-
-  var validators = Object.keys(validity.validators).map(function(key) { return validity.validators[key]; }, this);
-
-  return Q.Promise(function(resolve, reject) {
-
-    var promises = validators.map(function(validator) {
-
-      // Run each validator and collect up the promises
-      return validator.doValidate(value, isCollection).then(function(validation) {
-
-        validations[validator.name] = validation;
-
-        // If any of these validations fail then immediately resolve to invalid
-        if (!validation.isValid && !validationResults) {
-          validationResults = new ValidationResults(false, validations, isComplete);
-          resolve(validationResults);
-        }
-
-        return validation;
-      });
-    });
-
-    // When all the validations are complete and valid then resolve to valid
-    isComplete = Q.all(promises).then(function(values) {
-      validationResults = validationResults || new ValidationResults(true, validations, isComplete);
-      resolve(validationResults);
-      return validationResults;
-    }, function(error) {
-      reject(error);
-    });
-
-  });
-};
-

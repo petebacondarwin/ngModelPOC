@@ -14,10 +14,10 @@ describe('Validity', function() {
       function validate() {}
 
       v.addValidator('test', validate, false);
-      expect(v.validators['test']).toEqual(new Validator('test', validate, false));
+      expect(v.$validators['test']).toEqual(new Validator('test', validate, false));
 
       v.addValidator('test2', validate, true);
-      expect(v.validators['test2']).toEqual(new Validator('test2', validate, true));
+      expect(v.$validators['test2']).toEqual(new Validator('test2', validate, true));
     });
 
 
@@ -28,10 +28,10 @@ describe('Validity', function() {
       function validate2() {}
 
       v.addValidator('test', validate1, false);
-      expect(v.validators['test'].validatorFn).toBe(validate1);
+      expect(v.$validators['test'].validatorFn).toBe(validate1);
 
       v.addValidator('test', validate2, false);
-      expect(v.validators['test'].validatorFn).toBe(validate2);
+      expect(v.$validators['test'].validatorFn).toBe(validate2);
     });
 
 
@@ -44,7 +44,7 @@ describe('Validity', function() {
       expect(test.name).toEqual('test');
       expect(test.validatorFn).toBe(validate);
       expect(test.expectCollection).toBe(false);
-      expect(v.validators['test']).toBe(test);
+      expect(v.$validators['test']).toBe(test);
     });
   });
 
@@ -60,8 +60,8 @@ describe('Validity', function() {
       v.addValidator('test2', validate, true);
 
       v.removeValidator('test1');
-      expect(v.validators['test1']).toBeUndefined();
-      expect(v.validators['test2']).toEqual(new Validator('test2', validate, true));
+      expect(v.$validators['test1']).toBeUndefined();
+      expect(v.$validators['test2']).toEqual(new Validator('test2', validate, true));
     });
 
     it('should remove the given validator', function() {
@@ -73,8 +73,8 @@ describe('Validity', function() {
       var test2 = v.addValidator('test2', validate, true);
 
       v.removeValidator(test1);
-      expect(v.validators['test1']).toBeUndefined();
-      expect(v.validators['test2']).toBe(test2);
+      expect(v.$validators['test1']).toBeUndefined();
+      expect(v.$validators['test2']).toBe(test2);
     });
   });
 
