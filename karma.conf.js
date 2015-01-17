@@ -22,6 +22,7 @@ module.exports = function(config) {
       'src/Validity.js',
       'src/NgModelController.js',
       'src/ngModelAdaptor.js',
+      'src/InputController.js',
       'test/helpers.js',
       'test/**/*Spec.js'
     ],
