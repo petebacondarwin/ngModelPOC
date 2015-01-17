@@ -1,4 +1,5 @@
 function isString(value) { return typeof value === 'string'; }
+function isDefined(value) {return typeof value !== 'undefined';}
 function isUndefined(value) { return typeof value === 'undefined'; }
 function isBoolean(value) { return typeof value === 'boolean'; }
 function identity(value) { return value; }
@@ -22,3 +23,11 @@ EventList.prototype.trigger = function() {
     handler.apply(null, args);
   });
 };
+EventList.prototype.debounce = function(debounceDelay) {
+  var args = Array.prototype.splice.call(arguments,1);
+  var eventList = this;
+  $timeout.cancel(this.pendingDebounce);
+  this.pendingDebounce = $timeout(function() {
+    eventList.trigger.apply(eventList, args);
+  }, debounceDelay);
+}

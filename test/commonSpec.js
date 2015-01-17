@@ -34,5 +34,35 @@ describe('common', function() {
       expect(spy1).toHaveBeenCalledWith('x', 'y');
       expect(spy2).toHaveBeenCalledWith('x', 'y');
     });
+
+
+    it('should delay triggering the event by the given debounceDelay', function() {
+      var eventList = new EventList();
+      var spy1 = jasmine.createSpy('handler1');
+      eventList.addHandler(spy1);
+      eventList.debounce(200, 'x', 'y');
+      expect(spy1).not.toHaveBeenCalled();
+      $timeout.flush(100);
+      expect(spy1).not.toHaveBeenCalled();
+      $timeout.flush(100);
+      expect(spy1).toHaveBeenCalledWith('x', 'y');
+    });
+
+
+    it('should trigger only once for multiple calls within the debounceDelay period', function() {
+      var eventList = new EventList();
+      var spy1 = jasmine.createSpy('handler1');
+      eventList.addHandler(spy1);
+      eventList.debounce(200, 'x', 'y');
+      expect(spy1).not.toHaveBeenCalled();
+      $timeout.flush(100);
+      expect(spy1).not.toHaveBeenCalled();
+      eventList.debounce(200, 'x', 'y');
+      eventList.debounce(200, 'x', 'y');
+      $timeout.flush(100);
+      expect(spy1).not.toHaveBeenCalled();
+      $timeout.flush(100);
+      expect(spy1).toHaveBeenCalledWith('x', 'y');
+    });
   });
 });
