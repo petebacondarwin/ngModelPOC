@@ -1,6 +1,9 @@
 
 
-function NgModelController() {
+function NgModelController(ngModelGet) {
+  this.$ngModelGet = ngModelGet;
+  this.$ngModelSet = ngModelGet && ngModelGet.assign;
+
   this.$modelValue = undefined;
   this.$viewValue = undefined;
 
