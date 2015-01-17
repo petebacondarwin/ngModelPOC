@@ -7,41 +7,87 @@ describe('USE CASE: date input', function() {
   };
   var dayNumberFn = function(value) { return WEEKMAP[value]; };
 
+  function Scope() {
+    this.$$watches = [];
+  }
+  Scope.prototype.$watch = function(watch, handler) {
+    this.$$watches.push({ watch: watch, handler: handler, previousValue: NaN });
+  };
+  Scope.prototype.$digest = function() {
+    var scope = this;
+    var isDirty = true;
+    while(isDirty) {
+      isDirty = false;
+      this.$$watches.forEach(function(watchObj) {
+        var nextValue = watchObj.watch(scope);
+        if (nextValue != watchObj.previousValue) {
+          isDirty = true;
+          watchObj.handler(nextValue, watchObj.previousValue);
+          watchObj.previousValue = nextValue;
+        }
+      })
+    }
+  }
+
+
   function setup(initialScopeDate, initialInputValue) {
 
     log = [];
 
+
     // Initialize a "scope"
-    scope = {
-      dayNumber : initialScopeDate
+    scope = new Scope();
+    scope.dayNumber = initialScopeDate;
+
+
+    // Create our ngModel "expression"
+    var ngModelGet = function(scope) {
+      return scope.dayNumber;
     };
+    ngModelGet.assign = function(scope, value) {
+      scope.dayNumber = value;
+    };
+
 
     // Initialize an input control
     inputCtrl = {
       value: initialInputValue,
       $readValue: function() { return inputCtrl.value; },
       $writeValue: function(value) { inputCtrl.value = value; },
-      onChange: function() {
-        ngModel.$setViewValue(inputCtrl.$readValue());
-      }
+      $change: new EventList()
     };
 
     // Initialize the ngModelController that converts numbers to and from week days
-    ngModel = new NgModelController();
+    ngModel = new NgModelController(ngModelGet);
+    ngModel.$transforms.append('dayNumber', dayNumberFn, dayNumberFn);
 
-    ngModel.$onModelValueChanged(function(newVal, oldVal) {
-      scope.dayNumber = newVal;
+    var modelAdaptor = new ModelAdaptor(scope, ngModel);
+    var viewAdaptor = new ViewAdaptor(ngModel, inputCtrl);
+
+    ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {
       log.push('modelValueChanged: from "' + oldVal + '" to "' + newVal + '"');
     });
-
-    ngModel.$onViewValueChanged(function(newVal, oldVal) {
-      inputCtrl.value = newVal;
+    ngModel.$parseView.addHandler(function(newVal, oldVal) {
+      log.push('parseView: from "' + oldVal + '" to "' + newVal + '"');
+    });
+    ngModel.$formatModel.addHandler(function(newVal, oldVal) {
+      log.push('formatModel: from "' + oldVal + '" to "' + newVal + '"');
+    });
+    ngModel.$viewValueChanged.addHandler(function(newVal, oldVal) {
       log.push('viewValueChanged: from "' + oldVal + '" to "' + newVal + '"');
     });
-    ngModel.$transforms.append('dayNumber', dayNumberFn, dayNumberFn);
+
   }
 
+
+  beforeEach(function() {
+    mockPromises.install(Q.makePromise);
+    mockPromises.reset();
+  });
+
+
   it('should update the scope when the input changes', function() {
+
     setup();
 
     expect(scope.dayNumber).toBeUndefined();
@@ -49,25 +95,68 @@ describe('USE CASE: date input', function() {
 
     // Simulate a date selection
     inputCtrl.value = 'Sunday';
-    inputCtrl.onChange();
+    inputCtrl.$change.trigger(inputCtrl.value);
+
+    resolveValidatePromises();
 
     expect(log).toEqual([
-      'viewValueChanged: from "undefined" to "Sunday"',
+      'parseView: from "undefined" to "Sunday"',
       'modelValueChanged: from "undefined" to "6"'
     ]);
     expect(scope.dayNumber).toEqual(6);
 
     // Simulate a date selection
     inputCtrl.value = 'Monday';
-    inputCtrl.onChange();
+    inputCtrl.$change.trigger(inputCtrl.value);
+
+    resolveValidatePromises();
 
     expect(log).toEqual([
-      'viewValueChanged: from "undefined" to "Sunday"',
+      'parseView: from "undefined" to "Sunday"',
       'modelValueChanged: from "undefined" to "6"',
-      'viewValueChanged: from "Sunday" to "Monday"',
+      'parseView: from "Sunday" to "Monday"',
       'modelValueChanged: from "6" to "0"'
     ]);
 
     expect(scope.dayNumber).toEqual(0);
+  });
+
+
+  it('should update the input element when the scope changes', function() {
+
+    setup();
+
+    expect(scope.dayNumber).toBeUndefined();
+    expect(inputCtrl.value).toBeUndefined();
+
+    // Simulate a scope change
+    scope.dayNumber = 5;
+    scope.$digest();
+
+    resolveValidatePromises();
+
+    expect(log).toEqual([
+      'formatModel: from "undefined" to "5"',
+      'viewValueChanged: from "undefined" to "Saturday"'
+    ]);
+
+    expect(inputCtrl.value).toEqual('Saturday');
+
+
+    // Simulate another scope change
+    scope.dayNumber = 2;
+    scope.$digest();
+
+    resolveValidatePromises();
+
+    expect(log).toEqual([
+      'formatModel: from "undefined" to "5"',
+      'viewValueChanged: from "undefined" to "Saturday"',
+      'formatModel: from "5" to "2"',
+      'viewValueChanged: from "Saturday" to "Wednesday"'
+    ]);
+
+    expect(inputCtrl.value).toEqual('Wednesday');
+
   });
 });
