@@ -105,6 +105,7 @@ Validity.prototype.validate = function(value, isCollection) {
     isComplete = Q.all(promises).then(function(values) {
       validationResults = validationResults || new ValidationResults(true, validations, isComplete);
       resolve(validationResults);
+      return validationResults;
     }, function(error) {
       reject(error);
     });
