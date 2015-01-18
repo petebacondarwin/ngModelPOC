@@ -1,5 +1,11 @@
 describe('InputController', function() {
 
+  var fakeElement;
+
+  beforeEach(function() {
+    fakeElement = jasmine.createSpyObj('element', ['on', 'off']);
+  });
+
   describe('$writeValue', function() {
 
     it('should pass the value to element.val()', function() {
@@ -26,73 +32,137 @@ describe('InputController', function() {
 
   describe('$mapEvent', function() {
 
-    it('should add an event list object to the $inputEventMap and the $domEventMap', function() {
 
-      var ctrl = new InputController();
-      ctrl.$mapEvent('click', 'change', 250);
+    it('should add an EventMapping object to the $inputEvents and the $domEventMap', function() {
 
-      var inputEventMapping = ctrl.$inputEventMap['change']['click'];
-      var domEventMapping = ctrl.$domEventMap['click']['change'];
+      var ctrl = new InputController(fakeElement);
+      var eventMapping = ctrl.$mapEvent('click', 'change', 250);
 
-      expect(inputEventMapping).toEqual(jasmine.objectContaining({
-        $debounceDelay: 250
-      }));
+      expect(ctrl.$domEventMap['click']['change']).toBe(eventMapping);
+      expect(ctrl.$inputEvents['change']).toBe(eventMapping.eventList);
 
-      expect(domEventMapping).toEqual(jasmine.objectContaining({
-        $debounceDelay: 250
-      }));
-
-      expect(inputEventMapping).toBe(domEventMapping);
+      expect(eventMapping.element).toEqual(fakeElement);
+      expect(eventMapping.domEvent).toEqual('click');
+      expect(eventMapping.inputEvent).toEqual('change');
+      expect(eventMapping.debounceDelay).toEqual(250);
     });
 
 
     it('should update an existing mapping', function() {
 
-      var ctrl = new InputController();
-      ctrl.$mapEvent('click', 'change', 250);
+      var ctrl = new InputController(fakeElement);
+      var eventMapping1 = ctrl.$mapEvent('click', 'change', 250);
+      var eventMapping2 = ctrl.$mapEvent('click', 'change', 10);
+
+      expect(eventMapping2).toBe(eventMapping1);
+      expect(eventMapping1.debounceDelay).toEqual(10);
+    });
 
 
-      var inputEventMapping = ctrl.$inputEventMap['change']['click'];
-      var domEventMapping = ctrl.$domEventMap['click']['change'];
+    it('should bind an event handler to the DOM element', function() {
+      var ctrl = new InputController(fakeElement);
+      var eventMapping = ctrl.$mapEvent('click', 'change', 250);
+      expect(fakeElement.on).toHaveBeenCalledWith('click', jasmine.any(Function));
+    });
 
-      expect(inputEventMapping).toEqual(jasmine.objectContaining({
-        $debounceDelay: 250
-      }));
 
+    it('should share EventLists between mappings that map to the same inputEvent', function() {
+      var ctrl = new InputController(fakeElement);
+      var eventMapping = ctrl.$mapEvent('click', 'change', 250);
 
-      ctrl.$mapEvent('click', 'change', 10);
-
-      expect(inputEventMapping).toEqual(jasmine.objectContaining({
-        $debounceDelay: 10
-      }));
     });
   });
 
 
   describe('$unmapEvent', function() {
 
-    it('should remove any matching event list object from the $inputEventMap and the $domEventMap', function() {
+    it('should remove any matching event list object from the $inputEvents and the $domEventMap', function() {
 
-      var ctrl = new InputController();
-      ctrl.$mapEvent('click', 'change', 0);
-      ctrl.$mapEvent('keydown', 'change', 250);
+      var ctrl = new InputController(fakeElement);
+      var clickMapping = ctrl.$mapEvent('click', 'change', 0);
+      var keydownMapping = ctrl.$mapEvent('keydown', 'change', 250);
 
-      expect(Object.keys(ctrl.$inputEventMap['change'])).toEqual(['click', 'keydown']);
-      expect(Object.keys(ctrl.$domEventMap)).toEqual(['click', 'keydown']);
+      expect(ctrl.$inputEvents['change']).toBe(clickMapping.eventList);
+      expect(ctrl.$domEventMap['click']['change']).toBe(clickMapping);
 
-
-      expect(ctrl.$inputEventMap['change']['click']).toBeDefined();
-      expect(ctrl.$domEventMap['click']['change']).toBeDefined();
+      expect(ctrl.$inputEvents['change']).toBe(keydownMapping.eventList);
+      expect(ctrl.$domEventMap['keydown']['change']).toBe(keydownMapping);
 
       ctrl.$unmapEvent('click', 'change');
 
-      expect(ctrl.$inputEventMap['change']['click']).toBeUndefined();
+      // The "click" mapping should have been removed
       expect(ctrl.$domEventMap['click']['change']).toBeUndefined();
+
+      // The "change" eventList should still be there
+      expect(ctrl.$inputEvents['change']).toBe(keydownMapping.eventList);
+
+      // The "keydown" mapping should still be there
+      expect(ctrl.$inputEvents['change']).toBe(keydownMapping.eventList);
+      expect(ctrl.$domEventMap['keydown']['change']).toBe(keydownMapping);
+    });
+
+
+    it('should unbind the DOM event handler', function() {
+      var ctrl = new InputController(fakeElement);
+      ctrl.$mapEvent('click', 'change', 250);
+
+      ctrl.$unmapEvent('click', 'change');
+      expect(fakeElement.off).toHaveBeenCalledWith('click', jasmine.any(Function));
     });
   });
 
 
   describe('$triggerInputEvent', function() {
 
+    it('should trigger events, with given debounce on each matching mapping', function() {
+
+      var fakeEvent = {};
+      var ctrl = new InputController(fakeElement);
+
+      var clickMapping1 = ctrl.$mapEvent('click', 'change', 0);
+      var clickMapping2 = ctrl.$mapEvent('click', 'other', 200);
+      var keydownMapping = ctrl.$mapEvent('keydown', 'change', 250);
+      spyOn(ctrl.$inputEvents['change'], 'debounce');
+      spyOn(ctrl.$inputEvents['other'], 'debounce');
+
+      ctrl.$triggerInputEvent('change', 100, fakeEvent);
+
+      expect(ctrl.$inputEvents['change'].debounce).toHaveBeenCalledWith(100, fakeEvent);
+      expect(ctrl.$inputEvents['other'].debounce).not.toHaveBeenCalled();
+    });
+  });
+
+
+  describe('DOM event handling', function() {
+
+    it('should trigger all handlers for the given event', function() {
+      var ctrl = new InputController(fakeElement);
+      var handlerFns = {};
+
+      // Capture the handler
+      fakeElement.on.and.callFake(function(eventName, fn) {
+        handlerFns[eventName] = handlerFns[eventName] || [];
+        handlerFns[eventName].push(fn);
+      });
+
+      var clickMapping1 = ctrl.$mapEvent('click', 'change', 0);
+      var clickMapping2 = ctrl.$mapEvent('click', 'other', 100);
+      var keydownMapping = ctrl.$mapEvent('keydown', 'change', 250);
+      spyOn(ctrl.$inputEvents['change'], 'debounce');
+      spyOn(ctrl.$inputEvents['other'], 'debounce');
+
+      var fakeEvent = {};
+      expect(handlerFns['click'].length).toEqual(2);
+      expect(handlerFns['keydown'].length).toEqual(1);
+
+      handlerFns.click[0](fakeEvent);
+      expect(ctrl.$inputEvents['change'].debounce).toHaveBeenCalledWith(0, fakeEvent);
+      expect(ctrl.$inputEvents['other'].debounce).not.toHaveBeenCalled();
+
+      ctrl.$inputEvents['change'].debounce.calls.reset();
+      handlerFns.click[1](fakeEvent);
+      expect(ctrl.$inputEvents['change'].debounce).not.toHaveBeenCalled();
+      expect(ctrl.$inputEvents['other'].debounce).toHaveBeenCalledWith(100, fakeEvent);
+    });
   });
 });
