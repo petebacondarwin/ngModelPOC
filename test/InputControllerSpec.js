@@ -133,6 +133,43 @@ describe('InputController', function() {
   });
 
 
+  describe('$handleInputEvent', function() {
+
+    it('should add a handler that is called whent the named event is triggered', function() {
+
+      var fakeEvent = {};
+      var ctrl = new InputController(fakeElement);
+      var handlerSpy = jasmine.createSpy('handler');
+
+      ctrl.$handleInputEvent('change', handlerSpy);
+      ctrl.$triggerInputEvent('change', 100, fakeEvent);
+      $timeout.flush();
+      resolveAllPromises();
+
+      expect(handlerSpy).toHaveBeenCalledWith(fakeEvent);
+    });
+
+
+    it('should return a function to remove the handler', function() {
+
+      var fakeEvent = {};
+      var ctrl = new InputController(fakeElement);
+      var handlerSpy = jasmine.createSpy('handler');
+
+      var removeFn = ctrl.$handleInputEvent('change', handlerSpy);
+
+      removeFn();
+
+      ctrl.$triggerInputEvent('change', 100, fakeEvent);
+      $timeout.flush();
+      resolveAllPromises();
+
+      expect(handlerSpy).not.toHaveBeenCalled();
+
+    });
+  })
+
+
   describe('DOM event handling', function() {
 
     it('should trigger all handlers for the given event', function() {

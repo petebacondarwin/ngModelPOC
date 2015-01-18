@@ -55,6 +55,17 @@ InputController.prototype.$unmapEvent = function(domEvent, inputEvent) {
 };
 
 
+InputController.prototype.$handleInputEvent = function(inputEvent, handler) {
+
+  var eventList = this.$inputEvents[inputEvent] = this.$inputEvents[inputEvent] || new EventList();
+
+  // Increment a counter for tracking how many DOM events map to this event list
+  eventList.$$count = eventList.$$count || 0;
+  eventList.$$count += 1;
+
+  return eventList.addHandler(handler);
+}
+
 
 InputController.prototype.$triggerInputEvent = function(inputEvent, debounceDelay, event) {
   var inputEvents = this.$inputEvents[inputEvent];
