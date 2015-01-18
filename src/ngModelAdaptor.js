@@ -12,8 +12,14 @@ function ModelAdaptor(scope, ngModelController) {
 
 function ViewAdaptor(ngModelController, inputController) {
 
-  inputController.$change.addHandler(function(value, oldValue) {
-    ngModelController.$validity.validate(value).then(function(validationResults) {
+  //TODO: handle the case where validation1 takes longer than validation2 and
+  //      so resolves after it.
+
+  inputController.$handleInputEvent('change', function() {
+    var oldValue = ngModelController.$viewValue;
+    var value = inputController.$readValue();
+
+    return ngModelController.$validity.validate(value).then(function(validationResults) {
       if (validationResults.isValid) {
         ngModelController.$setViewValue(value);
       } else {

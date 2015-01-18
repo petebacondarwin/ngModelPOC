@@ -21,23 +21,24 @@ function resolveAllPromises() {
 }
 
 
-var deferredFns = [];
-var deferredNextId = 0;
-var now = 0;
 
 function $timeout(fn, delay) {
   delay = delay || 0;
-  var deferred = {time:(now + delay), fn:fn, id: deferredNextId}
-  deferredFns.push(deferred);
-  deferredFns.sort(function(a, b) { return a.time - b.time;});
+  var deferred = {time:($timeout.now + delay), fn:fn, id: $timeout.deferredNextId}
+  $timeout.deferredFns.push(deferred);
+  $timeout.deferredFns.sort(function(a, b) { return a.time - b.time;});
   return deferred;
 };
 
+$timeout.deferredFns = [];
+$timeout.deferredNextId = 0;
+$timeout.now = 0;
+
 $timeout.cancel = function(deferred) {
-  var fnIndex = deferredFns.indexOf(deferred);
+  var fnIndex = $timeout.deferredFns.indexOf(deferred);
 
   if (fnIndex !== -1) {
-    deferredFns.splice(fnIndex, 1);
+    $timeout.deferredFns.splice(fnIndex, 1);
     return true;
   }
 
@@ -46,16 +47,80 @@ $timeout.cancel = function(deferred) {
 
 $timeout.flush = function(delay) {
   if (isDefined(delay)) {
-    now += delay;
+    $timeout.now += delay;
   } else {
-    if (deferredFns.length) {
-      now = deferredFns[deferredFns.length - 1].time;
+    if ($timeout.deferredFns.length) {
+      $timeout.now = $timeout.deferredFns[$timeout.deferredFns.length - 1].time;
     } else {
       throw new Error('No deferred tasks to be flushed');
     }
   }
 
-  while (deferredFns.length && deferredFns[0].time <= now) {
-    deferredFns.shift().fn();
+  while ($timeout.deferredFns.length && $timeout.deferredFns[0].time <= $timeout.now) {
+    $timeout.deferredFns.shift().fn();
   }
 };
+
+
+
+
+function Element(initialValue) {
+  this.value = initialValue;
+  this.handlers = {};
+}
+
+Element.prototype.val = function(value) {
+  if (isDefined(value)) {
+    this.value = value;
+  }
+  return this.value;
+};
+
+Element.prototype.on = function(eventName, handler) {
+  this.handlers[eventName] = this.handlers[eventName] || [];
+  this.handlers[eventName].push(handler);
+};
+
+Element.prototype.off = function(eventName, handler) {
+  var handlers = this.handlers[eventName];
+  if (!handlers) return;
+  var index = handlers.indexOf(handler);
+  if (index !== -1) {
+    handlers.splice(index, 1);
+  }
+};
+
+Element.prototype.trigger = function(eventName) {
+  var handlers = this.handlers[eventName];
+  if (!handlers) return;
+  handlers.forEach(function(handler) {
+    handler({ type: eventName});
+  });
+};
+
+
+
+
+function Scope() {
+  this.$$watches = [];
+}
+
+Scope.prototype.$watch = function(watch, handler) {
+  this.$$watches.push({ watch: watch, handler: handler, previousValue: NaN });
+};
+
+Scope.prototype.$digest = function() {
+  var scope = this;
+  var isDirty = true;
+  while(isDirty) {
+    isDirty = false;
+    this.$$watches.forEach(function(watchObj) {
+      var nextValue = watchObj.watch(scope);
+      if (nextValue != watchObj.previousValue) {
+        isDirty = true;
+        watchObj.handler(nextValue, watchObj.previousValue);
+        watchObj.previousValue = nextValue;
+      }
+    })
+  }
+}
