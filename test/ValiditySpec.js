@@ -249,7 +249,5 @@ describe('Validity', function() {
         expect(isComplete).toBe(true);
       });
     });
-
-
   });
 });
