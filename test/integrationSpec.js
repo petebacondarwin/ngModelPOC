@@ -38,9 +38,9 @@ describe('USE CASE: date input', function() {
 
 
     // Initialize adaptors for this setup
-    var modelAdaptor = new ModelAdaptor(scope, ngModel);
-    var viewAdaptor = new ViewAdaptor(ngModel, inputCtrl);
-
+    bindToScope(scope, ngModel);
+    writeToElement(ngModel, inputCtrl);
+    readFromElementWithValidation(ngModel, inputCtrl);
 
     // Add some logging for tests
     ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {
@@ -126,7 +126,7 @@ describe('USE CASE: date input', function() {
   });
 
 
-  it("should set the model to null if the view is invalid", function() {
+  it('should set the model to null if the view is invalid', function() {
 
     setup();
 
@@ -153,5 +153,57 @@ describe('USE CASE: date input', function() {
       'modelValueChanged: from "0" to "null"'
     ]);
     expect(scope.dayNumber).toEqual(null);
+  });
+
+
+  it('should ignore out of date validations', function() {
+
+    setup();
+
+    var validations = {};
+
+    // Add an async validator
+    ngModel.$validity.addValidator('day', function(viewValue) {
+      var validation = Q.defer();
+      validations[viewValue] = validation;
+      return validation.promise;
+    });
+
+    log = [];
+
+    // Provide a couple of view changes that will trigger unresolved validations
+    selectDate('Monday');
+    expect(log).toEqual([]);
+    expect(validations).toEqual({ 'Monday': jasmine.any(Object) });
+    expect(scope.dayNumber).toBeUndefined();
+
+    selectDate('Tuesday');
+    expect(log).toEqual([]);
+    expect(validations).toEqual({
+      'Monday': jasmine.any(Object),
+      'Tuesday': jasmine.any(Object)
+    });
+    expect(scope.dayNumber).toBeUndefined();
+
+    // Now resolve the second validation
+    validations['Tuesday'].resolve(true);
+    resolveAllPromises();
+
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Tuesday"',
+      'modelValueChanged: from "undefined" to "1"'
+    ]);
+    expect(scope.dayNumber).toEqual(1);
+
+
+    // Now resolve the first (out of date) validation
+    validations['Monday'].resolve(true);
+    resolveAllPromises();
+
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Tuesday"',
+      'modelValueChanged: from "undefined" to "1"'
+    ]);
+    expect(scope.dayNumber).toEqual(1);
   });
 });
