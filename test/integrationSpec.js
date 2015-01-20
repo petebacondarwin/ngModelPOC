@@ -5,7 +5,7 @@ describe('USE CASE: date input', function() {
     0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday',
     'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6
   };
-  var dayNumberFn = function(value) { return value !== null ? WEEKMAP[value] : null; };
+  var dayNumberFn = function(value) { return isDefined(WEEKMAP[value]) ? WEEKMAP[value] : null; };
 
 
   function setup(initialScopeDate, initialInputValue) {
@@ -33,14 +33,18 @@ describe('USE CASE: date input', function() {
     inputCtrl.$mapEvent('keydown', 'change', 100);
 
     // Initialize the ngModelController that converts numbers to and from week days
-    ngModel = new NgModelController(ngModelGet);
+    ngModel = new NgModelController(scope, ngModelGet);
+
+
+    // Simulate a transform directive
     ngModel.$transforms.append('dayNumber', dayNumberFn, dayNumberFn);
 
 
     // Initialize adaptors for this setup
-    bindToScope(scope, ngModel);
+    watchScope(ngModel);
     writeToElement(ngModel, inputCtrl);
-    readFromElementWithValidation(ngModel, inputCtrl);
+    readFromElementOnEvent(ngModel, inputCtrl, 'change');
+    writeToScopeWithValidation(ngModel);
 
     // Add some logging for tests
     ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {
@@ -149,7 +153,7 @@ describe('USE CASE: date input', function() {
     log = [];
     selectDate('Badday');
     expect(log).toEqual([
-      'parseView: from "Monday" to "null"',
+      'parseView: from "Monday" to "Badday"',
       'modelValueChanged: from "0" to "null"'
     ]);
     expect(scope.dayNumber).toEqual(null);
@@ -164,8 +168,14 @@ describe('USE CASE: date input', function() {
 
     // Add an async validator
     ngModel.$validity.addValidator('day', function(viewValue) {
+
+      // We are going to defer the validation
+      // adding it to the validations object so that we can resolve it
+      // later in the test
       var validation = Q.defer();
       validations[viewValue] = validation;
+
+      // We return a promise for the validation
       return validation.promise;
     });
 
@@ -173,37 +183,37 @@ describe('USE CASE: date input', function() {
 
     // Provide a couple of view changes that will trigger unresolved validations
     selectDate('Monday');
-    expect(log).toEqual([]);
-    expect(validations).toEqual({ 'Monday': jasmine.any(Object) });
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Monday"',
+      'modelValueChanged: from "undefined" to "0"'
+    ]);
+    expect(validations).toEqual({ '0': jasmine.any(Object) });
     expect(scope.dayNumber).toBeUndefined();
 
     selectDate('Tuesday');
-    expect(log).toEqual([]);
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Monday"',
+      'modelValueChanged: from "undefined" to "0"',
+      'parseView: from "Monday" to "Tuesday"',
+      'modelValueChanged: from "0" to "1"'
+    ]);
     expect(validations).toEqual({
-      'Monday': jasmine.any(Object),
-      'Tuesday': jasmine.any(Object)
+      '0': jasmine.any(Object),
+      '1': jasmine.any(Object)
     });
     expect(scope.dayNumber).toBeUndefined();
 
-    // Now resolve the second validation
-    validations['Tuesday'].resolve(true);
-    resolveAllPromises();
 
-    expect(log).toEqual([
-      'parseView: from "undefined" to "Tuesday"',
-      'modelValueChanged: from "undefined" to "1"'
-    ]);
+    // Now resolve the second validation
+    validations['1'].resolve(true);
+    resolveAllPromises();
     expect(scope.dayNumber).toEqual(1);
 
 
     // Now resolve the first (out of date) validation
-    validations['Monday'].resolve(true);
+    validations['0'].resolve(true);
     resolveAllPromises();
-
-    expect(log).toEqual([
-      'parseView: from "undefined" to "Tuesday"',
-      'modelValueChanged: from "undefined" to "1"'
-    ]);
     expect(scope.dayNumber).toEqual(1);
+
   });
 });

@@ -1,8 +1,10 @@
 
 
-function NgModelController(ngModelGet) {
-  this.$ngModelGet = ngModelGet;
-  this.$ngModelSet = ngModelGet && ngModelGet.assign;
+function NgModelController($scope, ngModelExp) {
+  this.$scope = $scope;
+  this.$ngModelExp = ngModelExp;
+  this.$ngModelGet = function() { return ngModelExp($scope); };
+  this.$ngModelSet = ngModelExp.assign ? function(value) { return ngModelExp.assign($scope, value); } : noop;
 
   this.$modelValue = undefined;
   this.$viewValue = undefined;

@@ -1,11 +1,7 @@
-function bindToScope(scope, ngModelController) {
+function watchScope(ngModelController) {
 
-  scope.$watch(ngModelController.$ngModelGet, function(value) {
+  ngModelController.$scope.$watch(ngModelController.$ngModelExp, function(value) {
     ngModelController.$setModelValue(value);
-  });
-
-  ngModelController.$modelValueChanged.addHandler(function(value, oldValue) {
-    ngModelController.$ngModelSet(scope, value);
   });
 }
 
@@ -17,13 +13,19 @@ function writeToElement(ngModelController, inputController) {
   });
 }
 
-function readFromElementWithValidation(ngModelController, inputController) {
+function readFromElementOnEvent(ngModelController, inputController, eventName) {
+
+  inputController.$handleInputEvent(eventName, function() {
+    var value = inputController.$readValue();
+    ngModelController.$setViewValue(value);
+  });
+}
+
+function writeToScopeWithValidation(ngModelController) {
 
   var pendingValidations = [];
 
-  inputController.$handleInputEvent('change', function() {
-    var oldValue = ngModelController.$viewValue;
-    var value = inputController.$readValue();
+  ngModelController.$modelValueChanged.addHandler(function(value, oldValue) {
 
     // We are about to validate store a pending validation
     var pendingValidation = Q.defer();
@@ -36,10 +38,12 @@ function readFromElementWithValidation(ngModelController, inputController) {
       if (index !== -1) {
 
         if (validationResults.isValid) {
-          ngModelController.$setViewValue(value);
+          ngModelController.$modelValue = value;
+          ngModelController.$ngModelSet(value);
         } else {
           // This is the current convention...
-          ngModelController.$setViewValue(null);
+          ngModelController.$modelValue = null;
+          ngModelController.$ngModelSet(null);
         }
 
         // Clear this pendingValidation and any previous, out of date, ones
