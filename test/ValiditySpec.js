@@ -236,7 +236,7 @@ describe('Validity', function() {
         validation2.resolve(false);
         resolveAllPromises();
 
-        var isCompletePromise = mockPromises.valueForPromise(isValidPromise).isComplete;
+        var isCompletePromise = mockPromises.valueForPromise(isValidPromise).isCompletePromise;
         var isComplete = false;
         isCompletePromise.then(function() {
           isComplete = true;

@@ -1,5 +1,10 @@
 function Validity() {
   this.$validators = {};
+
+
+  // We track all the pending validations and throw away out of date ones
+  // so that old async validation results do not overwrite more recent ones
+  this.$pendingValidations = [];
 }
 
 Validity.prototype.addValidator = function(name, validatorFn, expectCollection) {
@@ -19,43 +24,62 @@ Validity.prototype.validate = function(value, isCollection) {
   var validity = this;
   var validations = {};
   var validationResults;
-  var isComplete;
+  var isCompletePromise;
 
-  // ensure that isCollection is strictly a boolean
+
+  // We are about to validate so store the pending validation
+  var pendingValidation = Q.defer();
+  this.$pendingValidations.push(pendingValidation);
+
+
+  // Ensure that isCollection is strictly a boolean
   isCollection = !!isCollection;
 
+  // Get an array of the validators to execute
   var validators = Object.keys(validity.$validators).map(function(key) { return validity.$validators[key]; }, this);
 
-  return Q.Promise(function(resolve, reject) {
+  // Run each validator and collect the promise to each of their validations in the `validationPromises` collection
+  var validationPromises = validators.map(function(validator) {
 
-    var promises = validators.map(function(validator) {
+    return validator.$$doValidate(value, isCollection).then(function(validation) {
 
-      // Run each validator and collect up the promises
-      return validator.doValidate(value, isCollection).then(function(validation) {
+      validations[validator.name] = validation;
 
-        validations[validator.name] = validation;
+      // If any of these validations fail then immediately resolve to invalid
+      if (!validation.isValid && !validationResults) {
+        validationResults = new ValidationResults(false, validations, isCompletePromise);
+        validity.$$resolveIfPending(pendingValidation, validationResults);
+      }
 
-        // If any of these validations fail then immediately resolve to invalid
-        if (!validation.isValid && !validationResults) {
-          validationResults = new ValidationResults(false, validations, isComplete);
-          resolve(validationResults);
-        }
-
-        return validation;
-      });
+      return validation;
     });
-
-    // When all the validations are complete and valid then resolve to valid
-    isComplete = Q.all(promises).then(function(values) {
-      validationResults = validationResults || new ValidationResults(true, validations, isComplete);
-      resolve(validationResults);
-      return validationResults;
-    }, function(error) {
-      reject(error);
-    });
-
   });
+
+  // When all the validations are complete and valid then resolve to valid
+  isCompletePromise = Q.all(validationPromises).then(function(values) {
+    validationResults = validationResults || new ValidationResults(true, validations, isCompletePromise);
+    validity.$$resolveIfPending(pendingValidation, validationResults);
+    return validationResults;
+  }, function(error) {
+    reject(error);
+  });
+
+  return pendingValidation.promise;
 };
+
+
+Validity.prototype.$$resolveIfPending = function(pendingValidation, validationResults) {
+  // Lookup the pending validation, if it is not there then it was out of date
+  var index = this.$pendingValidations.indexOf(pendingValidation);
+  if (index !== -1) {
+    // Clear this pendingValidation and any previous, out of date, ones
+    this.$pendingValidations.splice(0, index+1);
+    pendingValidation.resolve(validationResults);
+  } else {
+    pendingValidation.reject();
+  }
+}
+
 
 
 function Validation(isValid) {
@@ -76,7 +100,7 @@ function Validator(name, validatorFn, expectCollection) {
   this.expectCollection = !!expectCollection;
 }
 
-Validator.prototype.wrappedValidate = function(value, index, collection) {
+Validator.prototype.$$wrappedValidate = function(value, index, collection) {
   var validator = this;
   return Q(this.validatorFn(value, index, collection)).then(function(validation) {
     // Convert boolean to a validation if necessary
@@ -90,25 +114,25 @@ Validator.prototype.wrappedValidate = function(value, index, collection) {
   });
 };
 
-Validator.prototype.doValidate = function(value, isCollection) {
+Validator.prototype.$$doValidate = function(value, isCollection) {
   if (isCollection === this.expectCollection) {
-      return this.wrappedValidate(value);
+      return this.$$wrappedValidate(value);
   } else {
     if (this.expectCollection) {
-      return this.wrappedValidate([value]).then(function(value) {
+      return this.$$wrappedValidate([value]).then(function(value) {
         return value[0];
       });
     } else {
       return Q.all(value.map(function(item, index) {
-        return this.wrappedValidate(item, index, value);
+        return this.$$wrappedValidate(item, index, value);
       }, this));
     }
   }
 };
 
 
-function ValidationResults(isValid, validations, isComplete) {
+function ValidationResults(isValid, validations, isCompletePromise) {
   this.isValid = isValid;
   this.validations = validations;
-  this.isComplete = isComplete;
+  this.isCompletePromise = isCompletePromise;
 }
