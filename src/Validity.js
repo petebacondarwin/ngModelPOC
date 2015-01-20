@@ -20,6 +20,11 @@ Validity.prototype.removeValidator = function(nameOrValidator) {
 };
 
 
+// Validate the given value/collection against all the registered validators
+// Returns a promise that resolves to a ValidationResults object containing the
+// information about the validity state.
+// If the validation becomes out of date - because a more recent call to validate()
+// resolved sooner - then the promise for this validation will be rejected.
 Validity.prototype.validate = function(value, isCollection) {
   var validity = this;
   var validations = {};
@@ -43,6 +48,7 @@ Validity.prototype.validate = function(value, isCollection) {
 
     return validator.$$doValidate(value, isCollection).then(function(validation) {
 
+      // Store this particular validation for use in the validationResults
       validations[validator.name] = validation;
 
       // If any of these validations fail then immediately resolve to invalid
@@ -55,8 +61,9 @@ Validity.prototype.validate = function(value, isCollection) {
     });
   });
 
-  // When all the validations are complete and valid then resolve to valid
+  // When all the validations are have resolved then we resolve the isCompletePromise
   isCompletePromise = Q.all(validationPromises).then(function(values) {
+    // If the validation has not already resolved to invalid then it must now be valid
     validationResults = validationResults || new ValidationResults(true, validations, isCompletePromise);
     validity.$$resolveIfPending(pendingValidation, validationResults);
     return validationResults;
@@ -68,6 +75,9 @@ Validity.prototype.validate = function(value, isCollection) {
 };
 
 
+// We are tracking pendingValidations. When a validation resolves, we check to see if it is
+// out of date. If it is not then we resolve it and remove previous (now out of date) validations
+// from the pendingValidations list. If it is out of date then we simply reject it.
 Validity.prototype.$$resolveIfPending = function(pendingValidation, validationResults) {
   // Lookup the pending validation, if it is not there then it was out of date
   var index = this.$pendingValidations.indexOf(pendingValidation);
@@ -76,7 +86,7 @@ Validity.prototype.$$resolveIfPending = function(pendingValidation, validationRe
     this.$pendingValidations.splice(0, index+1);
     pendingValidation.resolve(validationResults);
   } else {
-    pendingValidation.reject();
+    pendingValidation.reject(validationResults);
   }
 }
 

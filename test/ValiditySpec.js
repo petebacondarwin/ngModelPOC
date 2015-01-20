@@ -248,6 +248,68 @@ describe('Validity', function() {
         resolveAllPromises();
         expect(isComplete).toBe(true);
       });
+
+
+      it('should ignore out of date validations', function() {
+
+        var v = new Validity();
+
+        var validations = {};
+        var resolved = {};
+        var rejected = {};
+
+        // Add an async validator
+        v.addValidator('day', function(viewValue) {
+
+          // We are going to defer the validation
+          // adding it to the validations object so that we can resolve it
+          // later in the test
+          var validation = Q.defer();
+          validations[viewValue] = validation;
+
+          // We return a promise for the validation
+          return validation.promise;
+        });
+
+        v.validate('xxx').then(
+          function(validationResults) { resolved['xxx'] = validationResults; },
+          function(error) { rejected['xxx'] = error; });
+        resolveAllPromises();
+        expect(validations).toEqual({ 'xxx': jasmine.any(Object) });
+        expect(resolved).toEqual({});
+        expect(rejected).toEqual({});
+
+        v.validate('yyy').then(
+          function(validationResults) { resolved['yyy'] = validationResults; },
+          function(error) { rejected['yyy'] = error; });
+        resolveAllPromises();
+        expect(validations).toEqual({
+          'xxx': jasmine.any(Object),
+          'yyy': jasmine.any(Object)
+        });
+        expect(resolved).toEqual({});
+        expect(rejected).toEqual({});
+
+        // Now resolve the second validation
+        validations['yyy'].resolve(true);
+        resolveAllPromises();
+        expect(resolved).toEqual({
+          'yyy': jasmine.any(Object)
+        });
+        expect(rejected).toEqual({});
+
+
+        // Now resolve the first (out of date) validation
+        validations['xxx'].resolve(true);
+        resolveAllPromises();
+        expect(resolved).toEqual({
+          'yyy': jasmine.any(Object)
+        });
+        expect(rejected).toEqual({
+          'xxx': jasmine.any(Object)
+        });
+
+      });
     });
   });
 });
