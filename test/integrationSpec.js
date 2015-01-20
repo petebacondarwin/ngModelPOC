@@ -44,7 +44,7 @@ describe('USE CASE: date input', function() {
     watchScope(ngModel);
     writeToElement(ngModel, inputCtrl);
     readFromElementOnEvent(ngModel, inputCtrl, 'change');
-    writeToScopeWithValidation(ngModel);
+    writeToScopeIfValid(ngModel);
 
     // Add some logging for tests
     ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {

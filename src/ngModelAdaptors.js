@@ -21,7 +21,7 @@ function readFromElementOnEvent(ngModelController, inputController, eventName) {
   });
 }
 
-function writeToScopeWithValidation(ngModelController) {
+function writeToScopeIfValid(ngModelController) {
 
   var pendingValidations = [];
 
