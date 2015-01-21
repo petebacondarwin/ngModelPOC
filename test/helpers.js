@@ -142,5 +142,7 @@ Scope.prototype.$applyAsync = function(fn) {
 
 
 var $animate = {
-  setClass: jasmine.createSpy('addClass')
+  setClass: function() {
+    // Dummy function
+  }
 };

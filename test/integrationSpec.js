@@ -43,7 +43,7 @@ describe('USE CASE: date input', function() {
     // Initialize adaptors for this setup
     watchScope(ngModel);
     writeToElement(ngModel, inputCtrl);
-    readFromElementOnEvent(ngModel, inputCtrl, 'change');
+    readFromElementOnChange(ngModel, inputCtrl);
     writeToScopeIfValid(ngModel);
     setTouchedOnBlur(ngModel, inputCtrl);
     setDirtyOnChange(ngModel, inputCtrl);
@@ -55,8 +55,14 @@ describe('USE CASE: date input', function() {
     ngModel.$parseView.addHandler(function(newVal, oldVal) {
       log.push('parseView: from "' + oldVal + '" to "' + newVal + '"');
     });
+    ngModel.$parseError.addHandler(function(error) {
+      log.push('parseError: from "' + error + '"');
+    });
     ngModel.$formatModel.addHandler(function(newVal, oldVal) {
       log.push('formatModel: from "' + oldVal + '" to "' + newVal + '"');
+    });
+    ngModel.$formatError.addHandler(function(error) {
+      log.push('formatError: from "' + error + '"');
     });
     ngModel.$viewValueChanged.addHandler(function(newVal, oldVal) {
       log.push('viewValueChanged: from "' + oldVal + '" to "' + newVal + '"');
@@ -77,9 +83,31 @@ describe('USE CASE: date input', function() {
   }
 
 
+  function addAsyncValidator(ngModel) {
+    var validations = {};
+
+    // Add an async validator
+    ngModel.$validity.addValidator('day', function(viewValue) {
+
+      // We are going to defer the validation
+      // adding it to the validations object so that we can resolve it
+      // later in the test
+      var validation = Q.defer();
+      validations[viewValue] = validation;
+
+      // We return a promise for the validation
+      return validation.promise;
+    });
+
+    return validations;
+  }
+
+
   beforeEach(function() {
     mockPromises.install(Q.makePromise);
     mockPromises.reset();
+
+    spyOn($animate, 'setClass');
   });
 
 
@@ -164,20 +192,7 @@ describe('USE CASE: date input', function() {
 
     setup();
 
-    var validations = {};
-
-    // Add an async validator
-    ngModel.$validity.addValidator('day', function(viewValue) {
-
-      // We are going to defer the validation
-      // adding it to the validations object so that we can resolve it
-      // later in the test
-      var validation = Q.defer();
-      validations[viewValue] = validation;
-
-      // We return a promise for the validation
-      return validation.promise;
-    });
+    var validations = addAsyncValidator(ngModel);
 
     log = [];
 
@@ -215,6 +230,30 @@ describe('USE CASE: date input', function() {
     resolveAllPromises();
     expect(scope.dayNumber).toEqual(1);
 
+  });
+
+
+  it('should set $pending state while waiting for async validators', function() {
+
+    setup();
+    var validations = addAsyncValidator(ngModel);
+
+    // Select a date to trigger an async validation to begin
+    selectDate('Monday');
+    scope.$digest(); // trigger asyncApply
+
+    expect(ngModel.$pending).toBe(true);
+    expect($animate.setClass).toHaveBeenCalledWith(element, 'ng-pending', []);
+
+    $animate.setClass.calls.reset();
+
+    // Now resolve the async validation
+    validations['0'].resolve(true);
+    resolveAllPromises();
+    scope.$digest(); // trigger promise resolutions and asyncApply
+
+    expect(ngModel.$pending).toBe(false);
+    expect($animate.setClass).toHaveBeenCalledWith(element, [], 'ng-pending');
   });
 
 

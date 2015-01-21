@@ -16,20 +16,32 @@ function writeToElement(ngModelController, inputController) {
 }
 
 
-function readFromElementOnEvent(ngModelController, inputController, eventName) {
+function readFromElementOnChange(ngModelController, inputController) {
 
-  inputController.$handleInputEvent(eventName, function() {
+  inputController.$handleInputEvent('change', function() {
     var value = inputController.$readValue();
-    ngModelController.$setViewValue(value);
+    if (value !== ngModelController.$viewValue) {
+      ngModelController.$setViewValue(value);
+    }
   });
 }
 
 
 function writeToScopeIfValid(ngModelController) {
 
+  var pendingState = {
+    on: '$pending',
+    onClass: 'ng-pending'
+  };
+  ngModelController.$initState(pendingState);
+
   ngModelController.$modelValueChanged.addHandler(function(value) {
 
+    ngModelController.$setState(pendingState);
+
     return ngModelController.$validity.validate(value).then(function(validationResults) {
+
+      ngModelController.$clearState(pendingState);
 
       if (validationResults.isValid) {
         ngModelController.$modelValue = value;
