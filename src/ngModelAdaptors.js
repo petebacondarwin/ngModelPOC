@@ -1,17 +1,20 @@
 function watchScope(ngModelController) {
 
   ngModelController.$scope.$watch(ngModelController.$ngModelExp, function(value) {
-    ngModelController.$setModelValue(value);
+    if (value !== ngModelController.$modelValue) {
+      ngModelController.$setModelValue(value);
+    }
   });
 }
 
 
 function writeToElement(ngModelController, inputController) {
 
-  ngModelController.$viewValueChanged.addHandler(function(value, oldValue) {
+  ngModelController.$viewValueChanged.addHandler(function(value) {
     inputController.$writeValue(value);
   });
 }
+
 
 function readFromElementOnEvent(ngModelController, inputController, eventName) {
 
@@ -21,9 +24,10 @@ function readFromElementOnEvent(ngModelController, inputController, eventName) {
   });
 }
 
+
 function writeToScopeIfValid(ngModelController) {
 
-  ngModelController.$modelValueChanged.addHandler(function(value, oldValue) {
+  ngModelController.$modelValueChanged.addHandler(function(value) {
 
     return ngModelController.$validity.validate(value).then(function(validationResults) {
 
@@ -35,8 +39,40 @@ function writeToScopeIfValid(ngModelController) {
         ngModelController.$modelValue = null;
         ngModelController.$ngModelSet(null);
       }
-
     });
-
   });
+}
+
+
+function setTouchedOnBlur(ngModelController, inputController) {
+  var touchedState = {
+    on: '$touched',
+    off: '$untouched',
+    onClass: 'ng-touched',
+    offClass: 'ng-untouched'
+  };
+
+  inputController.$mapEvent('blur', 'touched');
+
+  inputController.$handleInputEvent('touched', function() {
+    ngModelController.$setState(touchedState);
+  });
+
+  ngModelController.$initState(touchedState);
+}
+
+
+function setDirtyOnChange(ngModelController, inputController) {
+  var dirtyState = {
+    on: '$dirty',
+    off: '$pristine',
+    onClass: 'ng-dirty',
+    offClass: 'ng-pristine'
+  };
+
+  inputController.$handleInputEvent('change', function() {
+    ngModelController.$setState(dirtyState);
+  });
+
+  ngModelController.$initState(dirtyState);
 }

@@ -59,6 +59,8 @@ $timeout.flush = function(delay) {
   while ($timeout.deferredFns.length && $timeout.deferredFns[0].time <= $timeout.now) {
     $timeout.deferredFns.shift().fn();
   }
+
+  resolveAllPromises();
 };
 
 
@@ -103,6 +105,7 @@ Element.prototype.trigger = function(eventName) {
 
 function Scope() {
   this.$$watches = [];
+  this.$$asyncFns = [];
 }
 
 Scope.prototype.$watch = function(watch, handler) {
@@ -111,6 +114,13 @@ Scope.prototype.$watch = function(watch, handler) {
 
 Scope.prototype.$digest = function() {
   var scope = this;
+
+  // Run the asyncApply queue
+  this.$$asyncFns.forEach(function(fn) {
+    fn();
+  });
+  this.$$asyncFns = [];
+
   var isDirty = true;
   while(isDirty) {
     isDirty = false;
@@ -123,4 +133,14 @@ Scope.prototype.$digest = function() {
       }
     })
   }
-}
+  resolveAllPromises();
+};
+
+Scope.prototype.$applyAsync = function(fn) {
+  this.$$asyncFns.push(fn);
+};
+
+
+var $animate = {
+  setClass: jasmine.createSpy('addClass')
+};

@@ -144,7 +144,6 @@ describe('InputController', function() {
       ctrl.$handleInputEvent('change', handlerSpy);
       ctrl.$triggerInputEvent('change', 100, fakeEvent);
       $timeout.flush();
-      resolveAllPromises();
 
       expect(handlerSpy).toHaveBeenCalledWith(fakeEvent);
     });
@@ -162,7 +161,6 @@ describe('InputController', function() {
 
       ctrl.$triggerInputEvent('change', 100, fakeEvent);
       $timeout.flush();
-      resolveAllPromises();
 
       expect(handlerSpy).not.toHaveBeenCalled();
 

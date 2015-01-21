@@ -33,7 +33,7 @@ describe('USE CASE: date input', function() {
     inputCtrl.$mapEvent('keydown', 'change', 100);
 
     // Initialize the ngModelController that converts numbers to and from week days
-    ngModel = new NgModelController(scope, ngModelGet);
+    ngModel = new NgModelController(scope, element, ngModelGet);
 
 
     // Simulate a transform directive
@@ -45,6 +45,8 @@ describe('USE CASE: date input', function() {
     writeToElement(ngModel, inputCtrl);
     readFromElementOnEvent(ngModel, inputCtrl, 'change');
     writeToScopeIfValid(ngModel);
+    setTouchedOnBlur(ngModel, inputCtrl);
+    setDirtyOnChange(ngModel, inputCtrl);
 
     // Add some logging for tests
     ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {
@@ -67,13 +69,11 @@ describe('USE CASE: date input', function() {
     element.val(dateValue);
     element.trigger('keydown');
     $timeout.flush();
-    resolveAllPromises();
   }
 
   function changeScope(dayNumber) {
     scope.dayNumber = dayNumber;
     scope.$digest();
-    resolveAllPromises();
   }
 
 
@@ -215,5 +215,36 @@ describe('USE CASE: date input', function() {
     resolveAllPromises();
     expect(scope.dayNumber).toEqual(1);
 
+  });
+
+
+  it('should update dirty state when input changes', function() {
+
+    setup();
+
+    ngModel.$dirtyChanged.addHandler(function(newVal, oldVal) {
+      log.push('$dirtyChanged: from "' + oldVal + '" to "' + newVal + '"');
+    });
+    ngModel.$pristineChanged.addHandler(function(newVal, oldVal) {
+      log.push('$pristineChanged: from "' + oldVal + '" to "' + newVal + '"');
+    });
+
+    expect(ngModel.$dirty).toBe(false);
+    expect(ngModel.$pristine).toBe(true);
+
+    selectDate('Thursday');
+
+    // trigger async apply
+    scope.$digest();
+
+    expect(ngModel.$dirty).toBe(true);
+    expect(ngModel.$pristine).toBe(false);
+
+    expect(log).toEqual([
+      'parseView: from "undefined" to "Thursday"',
+      'modelValueChanged: from "undefined" to "3"',
+      '$dirtyChanged: from "false" to "true"',
+      '$pristineChanged: from "true" to "false"'
+    ]);
   });
 });
