@@ -10,6 +10,7 @@ describe('NgModelController', function() {
     ngModelExp = jasmine.createSpy('ngModelExp');
     ngModelExp.assign = jasmine.createSpy('ngModelExp.assign');
 
+    spyOn($animate, 'setClass');
   });
 
   describe('$setModelValue', function() {

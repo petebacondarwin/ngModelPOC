@@ -72,38 +72,38 @@ NgModelController.prototype.$setViewValue = function(value) {
 
 NgModelController.prototype.$initState = function(state) {
   this[state.on] = false;
-  this[state.off] = true;
-  $animate.setClass(this.$element, state.offClass, state.onClass);
+  if (state.off) this[state.off] = true;
+  $animate.setClass(this.$element, state.offClass || [], state.onClass || []);
   this[state.on + 'Changed'] = new EventList();
-  this[state.off + 'Changed'] = new EventList();
+  if (state.off) this[state.off + 'Changed'] = new EventList();
 };
 
 NgModelController.prototype.$setState = function(state) {
-  if (this[state.on] == true) return;
+  if (this[state.on] === true) return;
 
   var ngModel = this;
 
   this.$scope.$applyAsync(function() {
     ngModel[state.on] = true;
-    ngModel[state.off] = false;
-    $animate.setClass(ngModel.$element, state.onClass, state.offClass);
+    if (state.off) ngModel[state.off] = false;
+    $animate.setClass(ngModel.$element, state.onClass || [], state.offClass || []);
     ngModel[state.on + 'Changed'].trigger(true, false);
-    ngModel[state.off + 'Changed'].trigger(false, true);
+    if (state.off) ngModel[state.off + 'Changed'].trigger(false, true);
   });
 };
 
 
 NgModelController.prototype.$clearState = function(state) {
-  if (this[state.off] == true) return;
+  if (this[state.on] === false) return;
 
   var ngModel = this;
 
   this.$scope.$applyAsync(function() {
     ngModel[state.on] = false;
-    ngModel[state.off] = true;
-    $animate.setClass(ngModel.$element, state.offClass, state.onClass);
+    if (state.off) ngModel[state.off] = true;
+  $animate.setClass(ngModel.$element, state.offClass || [], state.onClass || []);
     ngModel[state.on + 'Changed'].trigger(false, true);
-    ngModel[state.off + 'Changed'].trigger(true, false);
+    if (state.off) ngModel[state.off + 'Changed'].trigger(true, false);
   });
 };
 
