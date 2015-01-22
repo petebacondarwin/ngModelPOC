@@ -1,6 +1,6 @@
 describe('USE CASE: date input', function() {
 
-  var element, inputCtrl, ngModel, scope, log;
+  var element, attrs, inputCtrl, ngModel, scope, log;
   var WEEKMAP = {
     0: 'Monday', 1: 'Tuesday', 2: 'Wednesday', 3: 'Thursday', 4: 'Friday', 5: 'Saturday', 6: 'Sunday',
     'Monday': 0, 'Tuesday': 1, 'Wednesday': 2, 'Thursday': 3, 'Friday': 4, 'Saturday': 5, 'Sunday': 6
@@ -27,14 +27,20 @@ describe('USE CASE: date input', function() {
     };
 
 
+    // Initialize the attributes object for this element
+    attrs = new Attributes({
+      ngModel: ngModelGet     // this is a hack for testing since our $parse is not implemented
+    });
+
+
     // Initialize an input control
     element = new Element(initialInputValue);
     inputCtrl = new InputController(element);
     inputCtrl.$mapEvent('keydown', 'change', 100);
 
-    // Initialize the ngModelController that converts numbers to and from week days
-    ngModel = new NgModelController(scope, element, ngModelGet);
 
+    // Initialize the ngModelController that converts numbers to and from week days
+    ngModel = new NgModelController(scope, element, attrs, $parse);
 
     // Simulate a transform directive
     ngModel.$transforms.append('dayNumber', dayNumberFn, dayNumberFn);

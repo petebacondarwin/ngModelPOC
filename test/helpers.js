@@ -146,3 +146,27 @@ var $animate = {
     // Dummy function
   }
 };
+
+function $parse(expression) {
+  // This is a dummy service - in the tests we pass in a function(scope) { ... }
+  // but in reality this would be a string that is converted to such a function
+  return expression;
+}
+
+function Attributes(attributes) {
+  this.$$observers = {};
+  for(var key in attributes) {
+    this[key] = attributes[key];
+    this.$$observers[key] = new EventList();
+  }
+}
+
+Attributes.prototype.$observe = function(key, handler) {
+  return this.$$observers[key].addHandler(handler);
+};
+
+Attributes.prototype.$set = function(key, value) {
+  var oldValue = this[key];
+  this[key] = value;
+  this.$$observers[key].trigger(value, oldValue);
+};

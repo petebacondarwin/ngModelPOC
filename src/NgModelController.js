@@ -1,11 +1,17 @@
 
 
-function NgModelController($scope, $element, ngModelExp) {
+function NgModelController($scope, $element, $attrs, $parse) {
   this.$scope = $scope;
   this.$element = $element;
-  this.$ngModelExp = ngModelExp;
+  this.$attrs = $attrs;
+
+  this.$ngModelExp = ngModelExp = $attrs.ngModel;
   this.$ngModelGet = function() { return ngModelExp($scope); };
   this.$ngModelSet = ngModelExp.assign ? function(value) { return ngModelExp.assign($scope, value); } : noop;
+
+  this.$options = {};
+  this.$formController = null;
+  this.$inputController = null;
 
   this.$modelValue = undefined;
   this.$viewValue = undefined;
@@ -22,6 +28,30 @@ function NgModelController($scope, $element, ngModelExp) {
   this.$formatError = new EventList();
   this.$viewValueChanged = new EventList();
 }
+
+
+NgModelController.prototype.$$setOptions = function(options) {
+  this.$options = options;
+};
+
+
+NgModelController.prototype.$$setForm = function(formController) {
+
+  var ngModelController = this;
+
+  this.$formController = formController;
+
+  // Connect to the formController
+  formController.$addControl(ngModelController);
+  this.$attrs.$observe('name', function(newValue) {
+    if (ngModelController.$name !== newValue) {
+      formController.$$renameControl(ngModelController, newValue);
+    }
+  });
+  scope.$on('$destroy', function() {
+    formController.$removeControl(ngModelController);
+  });
+};
 
 
 NgModelController.prototype.$setModelValue = function(value) {
