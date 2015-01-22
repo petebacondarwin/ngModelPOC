@@ -41,12 +41,7 @@ describe('USE CASE: date input', function() {
 
 
     // Initialize adaptors for this setup
-    watchScope(ngModel);
-    writeToElement(ngModel, inputCtrl);
-    readFromElementOnChange(ngModel, inputCtrl);
-    writeToScopeIfValid(ngModel);
-    setTouchedOnBlur(ngModel, inputCtrl);
-    setDirtyOnChange(ngModel, inputCtrl);
+    defaultAdaptor(ngModel, inputCtrl);
 
     // Add some logging for tests
     ngModel.$modelValueChanged.addHandler(function(newVal, oldVal) {
