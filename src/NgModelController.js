@@ -1,17 +1,15 @@
 
 
-function NgModelController($scope, $element, $attrs, $parse) {
+function NgModelController($scope, $element, $attrs, $parse, $defaultNgModelOptions) {
   this.$scope = $scope;
   this.$element = $element;
   this.$attrs = $attrs;
+  this.$defaultNgModelOptions = $defaultNgModelOptions;
 
-  this.$ngModelExp = ngModelExp = $attrs.ngModel;
+  this.$ngModelExp = ngModelExp = $parse($attrs.ngModel);
   this.$ngModelGet = function() { return ngModelExp($scope); };
   this.$ngModelSet = ngModelExp.assign ? function(value) { return ngModelExp.assign($scope, value); } : noop;
 
-  this.$options = {};
-  this.$formController = null;
-  this.$inputController = null;
 
   this.$modelValue = undefined;
   this.$viewValue = undefined;
@@ -30,28 +28,60 @@ function NgModelController($scope, $element, $attrs, $parse) {
 }
 
 
-NgModelController.prototype.$$setOptions = function(options) {
-  this.$options = options;
+
+//////////  Initialisation and Configuration  ///////////
+
+NgModelController.prototype.$$setNgModelOptionsController = function(ngModelOptionsController) {
+  this.$ngModelOptions = ngModelOptionsController || ngModelOptionsController.$options;
 };
 
 
-NgModelController.prototype.$$setForm = function(formController) {
+NgModelController.prototype.$$setFormController = function(formController) {
 
-  var ngModelController = this;
+  var ngModelCtrl = this;
 
   this.$formController = formController;
 
   // Connect to the formController
-  formController.$addControl(ngModelController);
+  formController.$addControl(ngModelCtrl);
   this.$attrs.$observe('name', function(newValue) {
-    if (ngModelController.$name !== newValue) {
-      formController.$$renameControl(ngModelController, newValue);
+    if (ngModelCtrl.$name !== newValue) {
+      formController.$$renameControl(ngModelCtrl, newValue);
     }
   });
   scope.$on('$destroy', function() {
-    formController.$removeControl(ngModelController);
+    formController.$removeControl(ngModelCtrl);
   });
 };
+
+
+NgModelController.prototype.$$setInputController = function(inputController) {
+  this.$inputController = inputController;
+};
+
+
+NgModelController.prototype.$$installAdaptors = function() {
+  var ngModelCtrl = this;
+
+  // Initialize the ngModelOptions if it was not set by a directive
+  if (!this.$ngModelOptions) {
+    this.$ngModelOptions = this.$defaultNgModelOptions;
+  }
+
+  // Initialize the inputController if it was not set by a directive
+  if (!this.$inputController) {
+    this.$inputController = this.$defaultNgModelOptions.$createInputController(this.$element);
+  }
+
+  // Run each of the adaptors to install them on this instance of NgModelController
+  this.$ngModelOptions.$ngModelAdaptors.forEach(function(adaptor) {
+    adaptor(ngModelCtrl, ngModelCtrl.$inputController);
+  });
+}
+
+
+
+//////////  Model <-> View Transformations  ////////
 
 
 NgModelController.prototype.$setModelValue = function(value) {
@@ -100,6 +130,9 @@ NgModelController.prototype.$setViewValue = function(value) {
 };
 
 
+
+/////// State Management //////////
+
 NgModelController.prototype.$initState = function(state) {
   this[state.on] = false;
   if (state.off) this[state.off] = true;
@@ -111,14 +144,14 @@ NgModelController.prototype.$initState = function(state) {
 NgModelController.prototype.$setState = function(state) {
   if (this[state.on] === true) return;
 
-  var ngModel = this;
+  var ngModelCtrl = this;
 
   this.$scope.$applyAsync(function() {
-    ngModel[state.on] = true;
-    if (state.off) ngModel[state.off] = false;
-    $animate.setClass(ngModel.$element, state.onClass || [], state.offClass || []);
-    ngModel[state.on + 'Changed'].trigger(true, false);
-    if (state.off) ngModel[state.off + 'Changed'].trigger(false, true);
+    ngModelCtrl[state.on] = true;
+    if (state.off) ngModelCtrl[state.off] = false;
+    $animate.setClass(ngModelCtrl.$element, state.onClass || [], state.offClass || []);
+    ngModelCtrl[state.on + 'Changed'].trigger(true, false);
+    if (state.off) ngModelCtrl[state.off + 'Changed'].trigger(false, true);
   });
 };
 
@@ -126,16 +159,20 @@ NgModelController.prototype.$setState = function(state) {
 NgModelController.prototype.$clearState = function(state) {
   if (this[state.on] === false) return;
 
-  var ngModel = this;
+  var ngModelCtrl = this;
 
   this.$scope.$applyAsync(function() {
-    ngModel[state.on] = false;
-    if (state.off) ngModel[state.off] = true;
-  $animate.setClass(ngModel.$element, state.offClass || [], state.onClass || []);
-    ngModel[state.on + 'Changed'].trigger(false, true);
-    if (state.off) ngModel[state.off + 'Changed'].trigger(true, false);
+    ngModelCtrl[state.on] = false;
+    if (state.off) ngModelCtrl[state.off] = true;
+  $animate.setClass(ngModelCtrl.$element, state.offClass || [], state.onClass || []);
+    ngModelCtrl[state.on + 'Changed'].trigger(false, true);
+    if (state.off) ngModelCtrl[state.off + 'Changed'].trigger(true, false);
   });
 };
+
+
+
+////////////  Helpers  /////////////
 
 
 NgModelController.prototype.$isEmpty = function(value) {
