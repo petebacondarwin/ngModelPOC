@@ -65,7 +65,16 @@ function writeToScopeIfValid(ngModelController) {
     on: '$pending',
     onClass: 'ng-pending'
   };
+
+  var invalidState = {
+    on: '$invalid',
+    off: '$valid',
+    onClass: 'ng-invalid',
+    offClass: 'ng-valid'
+  };
+
   ngModelController.$initState(pendingState);
+  ngModelController.$initState(invalidState);
 
   ngModelController.$modelValueChanged.addHandler(function(value) {
 
@@ -76,10 +85,11 @@ function writeToScopeIfValid(ngModelController) {
       ngModelController.$clearState(pendingState);
 
       if (validationResults.isValid) {
+        ngModelController.$clearState(invalidState);
         ngModelController.$modelValue = value;
         ngModelController.$ngModelSet(value);
       } else {
-        // This is the current convention...
+        ngModelController.$setState(invalidState);
         ngModelController.$modelValue = null;
         ngModelController.$ngModelSet(null);
       }

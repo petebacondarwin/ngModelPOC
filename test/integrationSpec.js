@@ -252,6 +252,40 @@ describe('USE CASE: date input', function() {
   });
 
 
+  it('should change $invalid state while when validation resolves', function() {
+
+    setup();
+    var validations = addAsyncValidator(ngModel);
+
+    // Select a date to trigger an async validation to begin
+    selectDate('Monday');
+    scope.$digest(); // trigger asyncApply
+
+    // Resolve the async validation to valid
+    validations['0'].resolve(true);
+    resolveAllPromises();
+    scope.$digest(); // trigger promise resolutions and asyncApply
+
+    expect(ngModel.$valid).toBe(true);
+    expect(ngModel.$invalid).toBe(false);
+    expect($animate.setClass).toHaveBeenCalledWith(element, 'ng-valid', 'ng-invalid');
+
+
+    // Select a date to trigger an async validation to begin
+    selectDate('Tuesday');
+    scope.$digest(); // trigger asyncApply
+
+    // Resolve the async validation to invalid
+    validations['1'].resolve(false);
+    resolveAllPromises();
+    scope.$digest(); // trigger promise resolutions and asyncApply
+
+    expect(ngModel.$valid).toBe(false);
+    expect(ngModel.$invalid).toBe(true);
+    expect($animate.setClass).toHaveBeenCalledWith(element, 'ng-invalid', 'ng-valid');
+  });
+
+
   it('should update dirty state when input changes', function() {
 
     setup();
