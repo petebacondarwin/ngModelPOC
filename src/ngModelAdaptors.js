@@ -20,14 +20,53 @@
 // Adaptors can be composed (by calling each other). For an example see the `defaultAdaptor` below.
 
 
-function defaultAdaptor(ngModelController, inputController) {
-  watchScope(ngModelController);
-  writeToElement(ngModelController, inputController);
-  readFromElementOnChange(ngModelController, inputController);
-  writeToScopeIfValid(ngModelController);
-  setTouchedOnBlur(ngModelController, inputController);
-  setDirtyOnChange(ngModelController, inputController);
+function NgModelAdaptors() {
+  this.adaptors = {};
 }
+
+
+// Register a new adaptor by name
+NgModelAdaptors.prototype.register = function(name, adaptor) {
+  this.adaptors[name] = adaptor;
+};
+
+
+NgModelAdaptors.prototype.composeAdaptors = function(adaptorNames) {
+  var adaptorMap = this.adaptors;
+  var adaptors = adaptorNames.map(function(adaptorName) {
+    var adaptor = adaptorMap[adaptorName];
+    if (!adaptor) throw new Error('Requested Model Adaptor, "' + adaptorName + '" has not been registered.');
+    return adaptorMap[adaptorName];
+  });
+
+  // Return a new function that will call all these adaptors
+  return function(ngModelController, inputController) {
+    adaptors.forEach(function(adaptor) {
+      adaptor.call(null, ngModelController, inputController);
+    });
+  }
+};
+
+
+// The instance of the service used by the NgModelOptionsController
+$ngModelAdaptors = new NgModelAdaptors();
+
+$ngModelAdaptors.register('watchScope', watchScope);
+$ngModelAdaptors.register('writeToElement', writeToElement);
+$ngModelAdaptors.register('readFromElementOnChange', readFromElementOnChange);
+$ngModelAdaptors.register('writeToScopeIfValid', writeToScopeIfValid);
+$ngModelAdaptors.register('setTouchedOnBlur', setTouchedOnBlur);
+$ngModelAdaptors.register('setDirtyOnChange', setDirtyOnChange);
+$ngModelAdaptors.register('delegateIsEmptyToInputController', delegateIsEmptyToInputController);
+$ngModelAdaptors.register('defaultAdaptor', $ngModelAdaptors.composeAdaptors([
+    'watchScope',
+    'writeToElement',
+    'readFromElementOnChange',
+    'writeToScopeIfValid',
+    'setTouchedOnBlur',
+    'setDirtyOnChange',
+    'delegateIsEmptyToInputController'
+]));
 
 
 function watchScope(ngModelController) {
@@ -38,6 +77,12 @@ function watchScope(ngModelController) {
     }
   });
 }
+
+
+function delegateIsEmptyToInputController(ngModelController, inputController) {
+
+  ngModelController.$isEmpty = function() { inputController.isEmpty(); };
+};
 
 
 function writeToElement(ngModelController, inputController) {

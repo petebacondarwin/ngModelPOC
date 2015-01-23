@@ -1,9 +1,32 @@
-function InputController(element) {
-  this.$element = element;
+// The InputController is the component that sits between the NgModelController
+// and the DOM element.
+//
+// Input directives that want to interact with ngModel should create one of these
+// and provide it to their associated NgModelController.
+//
+// A common pattern for doing this would be to specify it as the controller of the input directive
+//
+// The two key areas that the InputController manages are:
+//
+// * reading/writing/checking values on the DOM element
+// * mapping DOM events to abstract "input" events
+//
+// Input directives should override the $readValue, $writeValue and $isEmpty methods if they don't like what
+// the default behaviour
+//
+// Input directives specify the mappings between DOM events and input events. In particular they should
+// specify what DOM events map to the "change" input event, which is the primary event that the
+// NgModelController is going to listen to for changes to the input.
+
+function InputController($element) {
+  this.$element = $element;
   this.$inputEvents = {};
   this.$domEventMap = {};
 }
 
+
+
+//////////  Reading and Writing Values  ////////////
 
 InputController.prototype.$writeValue = function(value) {
   this.$element.val(value);
@@ -14,6 +37,15 @@ InputController.prototype.$readValue = function() {
   return this.$element.val();
 };
 
+
+NgModelController.prototype.$isEmpty = function(value) {
+  return isUndefined(value) || value === '' || value === null || value !== value;
+};
+
+
+
+
+/////////  Event Mapping  /////////////
 
 InputController.prototype.$mapEvent = function(domEvent, inputEvent, debounceDelay) {
 

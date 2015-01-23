@@ -103,7 +103,8 @@ Element.prototype.trigger = function(eventName) {
 
 
 
-function Scope() {
+function Scope(initial) {
+  extend(this, initial);
   this.$$watches = [];
   this.$$asyncFns = [];
 }
@@ -141,17 +142,34 @@ Scope.prototype.$applyAsync = function(fn) {
 };
 
 
+Scope.prototype.$eval = function(exp) {
+  // Dummy
+}
+
+
+Scope.prototype.$on = function() {
+  // Dummy
+};
+
+
 var $animate = {
   setClass: function() {
     // Dummy function
   }
 };
 
+
 function $parse(expression) {
-  // This is a dummy service - in the tests we pass in a function(scope) { ... }
-  // but in reality this would be a string that is converted to such a function
-  return expression;
+  function getter(scope) {
+    return scope[expression];
+  }
+  getter.assign = function(scope, value) {
+    scope[expression] = value;
+  };
+  return getter;
 }
+
+
 
 function Attributes(attributes) {
   this.$$observers = {};
@@ -161,8 +179,11 @@ function Attributes(attributes) {
   }
 }
 
+
 Attributes.prototype.$observe = function(key, handler) {
-  return this.$$observers[key].addHandler(handler);
+  if (this.$$observers[key]) {
+    return this.$$observers[key].addHandler(handler);
+  }
 };
 
 Attributes.prototype.$set = function(key, value) {

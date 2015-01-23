@@ -1,15 +1,15 @@
 
 
-function NgModelController($scope, $element, $attrs, $parse, $defaultNgModelOptions) {
+function NgModelController($scope, $element, $attrs, $parse) {
   this.$scope = $scope;
   this.$element = $element;
   this.$attrs = $attrs;
-  this.$defaultNgModelOptions = $defaultNgModelOptions;
 
   this.$ngModelExp = ngModelExp = $parse($attrs.ngModel);
   this.$ngModelGet = function() { return ngModelExp($scope); };
   this.$ngModelSet = ngModelExp.assign ? function(value) { return ngModelExp.assign($scope, value); } : noop;
 
+  this.$inputController = new InputController(this.$element);
 
   this.$modelValue = undefined;
   this.$viewValue = undefined;
@@ -31,12 +31,7 @@ function NgModelController($scope, $element, $attrs, $parse, $defaultNgModelOpti
 
 //////////  Initialisation and Configuration  ///////////
 
-NgModelController.prototype.$$setNgModelOptionsController = function(ngModelOptionsController) {
-  this.$ngModelOptions = ngModelOptionsController || ngModelOptionsController.$options;
-};
-
-
-NgModelController.prototype.$$setFormController = function(formController) {
+NgModelController.prototype.$setFormController = function(formController) {
 
   var ngModelCtrl = this;
 
@@ -44,39 +39,32 @@ NgModelController.prototype.$$setFormController = function(formController) {
 
   // Connect to the formController
   formController.$addControl(ngModelCtrl);
-  this.$attrs.$observe('name', function(newValue) {
+  ngModelCtrl.$attrs.$observe('name', function(newValue) {
     if (ngModelCtrl.$name !== newValue) {
       formController.$$renameControl(ngModelCtrl, newValue);
     }
   });
-  scope.$on('$destroy', function() {
+  this.$scope.$on('$destroy', function() {
     formController.$removeControl(ngModelCtrl);
   });
 };
 
 
-NgModelController.prototype.$$setInputController = function(inputController) {
+NgModelController.prototype.$setInputController = function(inputController) {
   this.$inputController = inputController;
 };
 
 
-NgModelController.prototype.$$installAdaptors = function() {
+NgModelController.prototype.$applyOptions = function(ngModelOptions) {
   var ngModelCtrl = this;
 
-  // Initialize the ngModelOptions if it was not set by a directive
-  if (!this.$ngModelOptions) {
-    this.$ngModelOptions = this.$defaultNgModelOptions;
-  }
-
-  // Initialize the inputController if it was not set by a directive
-  if (!this.$inputController) {
-    this.$inputController = this.$defaultNgModelOptions.$createInputController(this.$element);
-  }
+  this.$ngModelOptions = ngModelOptions;
 
   // Run each of the adaptors to install them on this instance of NgModelController
-  this.$ngModelOptions.$ngModelAdaptors.forEach(function(adaptor) {
-    adaptor(ngModelCtrl, ngModelCtrl.$inputController);
-  });
+  ngModelOptions.$applyAdaptors(ngModelCtrl, ngModelCtrl.$inputController);
+
+  // Set up the event mappings
+  ngModelOptions.$mapEvents(ngModelCtrl.$inputController);
 }
 
 
@@ -170,11 +158,3 @@ NgModelController.prototype.$clearState = function(state) {
   });
 };
 
-
-
-////////////  Helpers  /////////////
-
-
-NgModelController.prototype.$isEmpty = function(value) {
-  return isUndefined(value) || value === '' || value === null || value !== value;
-};
