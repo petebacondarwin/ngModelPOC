@@ -118,23 +118,23 @@ function writeToScopeIfValid(ngModelController) {
     offClass: 'ng-valid'
   };
 
-  ngModelController.$initState(pendingState);
-  ngModelController.$initState(invalidState);
+  ngModelController.$states.$initState(pendingState);
+  ngModelController.$states.$initState(invalidState);
 
   ngModelController.$modelValueChanged.addHandler(function(value) {
 
-    ngModelController.$setState(pendingState);
+    ngModelController.$states.$setState(pendingState);
 
     return ngModelController.$validity.validate(value).then(function(validationResults) {
 
-      ngModelController.$clearState(pendingState);
+      ngModelController.$states.$clearState(pendingState);
 
       if (validationResults.isValid) {
-        ngModelController.$clearState(invalidState);
+        ngModelController.$states.$clearState(invalidState);
         ngModelController.$modelValue = value;
         ngModelController.$ngModelSet(value);
       } else {
-        ngModelController.$setState(invalidState);
+        ngModelController.$states.$setState(invalidState);
         ngModelController.$modelValue = null;
         ngModelController.$ngModelSet(null);
       }
@@ -154,10 +154,10 @@ function setTouchedOnBlur(ngModelController, inputController) {
   inputController.$mapEvent('blur', 'touched');
 
   inputController.$handleInputEvent('touched', function() {
-    ngModelController.$setState(touchedState);
+    ngModelController.$states.$setState(touchedState);
   });
 
-  ngModelController.$initState(touchedState);
+  ngModelController.$states.$initState(touchedState);
 }
 
 
@@ -170,8 +170,8 @@ function setDirtyOnChange(ngModelController, inputController) {
   };
 
   inputController.$handleInputEvent('change', function() {
-    ngModelController.$setState(dirtyState);
+    ngModelController.$states.$setState(dirtyState);
   });
 
-  ngModelController.$initState(dirtyState);
+  ngModelController.$states.$initState(dirtyState);
 }
