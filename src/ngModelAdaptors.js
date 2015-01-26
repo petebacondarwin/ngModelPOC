@@ -138,6 +138,10 @@ function writeToScopeIfValid(ngModelController) {
         ngModelController.$modelValue = null;
         ngModelController.$ngModelSet(null);
       }
+    }, function(results) {
+      if (!results.$stale) {
+        console.log('error', results);
+      }
     });
   });
 }

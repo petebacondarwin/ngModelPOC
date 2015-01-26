@@ -92,6 +92,7 @@ NgModelController.prototype.$setModelValue = function(value) {
     this.$formatError.trigger(x);
     this.$modelValue = oldModelValue;
     this.$modelValueChanged.trigger(value, this.$modelValue);
+    throw x;
   }
 };
 
@@ -115,47 +116,8 @@ NgModelController.prototype.$setViewValue = function(value) {
     this.$parseError.trigger(x);
     this.$viewValue = oldViewValue;
     this.$viewValueChanged.trigger(value, this.$viewValue);
+    throw x;
   }
 };
 
-
-
-/////// State Management //////////
-
-NgModelController.prototype.$initState = function(state) {
-  this[state.on] = false;
-  if (state.off) this[state.off] = true;
-  $animate.setClass(this.$element, state.offClass || [], state.onClass || []);
-  this[state.on + 'Changed'] = new EventList();
-  if (state.off) this[state.off + 'Changed'] = new EventList();
-};
-
-NgModelController.prototype.$setState = function(state) {
-  if (this[state.on] === true) return;
-
-  var ngModelCtrl = this;
-
-  this.$scope.$applyAsync(function() {
-    ngModelCtrl[state.on] = true;
-    if (state.off) ngModelCtrl[state.off] = false;
-    $animate.setClass(ngModelCtrl.$element, state.onClass || [], state.offClass || []);
-    ngModelCtrl[state.on + 'Changed'].trigger(true, false);
-    if (state.off) ngModelCtrl[state.off + 'Changed'].trigger(false, true);
-  });
-};
-
-
-NgModelController.prototype.$clearState = function(state) {
-  if (this[state.on] === false) return;
-
-  var ngModelCtrl = this;
-
-  this.$scope.$applyAsync(function() {
-    ngModelCtrl[state.on] = false;
-    if (state.off) ngModelCtrl[state.off] = true;
-  $animate.setClass(ngModelCtrl.$element, state.offClass || [], state.onClass || []);
-    ngModelCtrl[state.on + 'Changed'].trigger(false, true);
-    if (state.off) ngModelCtrl[state.off + 'Changed'].trigger(true, false);
-  });
-};
 

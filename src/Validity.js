@@ -86,6 +86,7 @@ Validity.prototype.$$resolveIfPending = function(pendingValidation, validationRe
     this.$pendingValidations.splice(0, index+1);
     pendingValidation.resolve(validationResults);
   } else {
+    validationResults.$stale = true;
     pendingValidation.reject(validationResults);
   }
 }

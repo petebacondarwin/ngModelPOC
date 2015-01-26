@@ -58,7 +58,9 @@ describe('NgModelController', function() {
 
       var spy = jasmine.createSpy('formatError');
       ctrl.$formatError.addHandler(spy);
-      ctrl.$setModelValue('model after');
+      expect(function() {
+        ctrl.$setModelValue('model after');
+      }).toThrow();
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
       expect(spy).toHaveBeenCalledWith('formatter failure');
@@ -118,7 +120,9 @@ describe('NgModelController', function() {
 
       var spy = jasmine.createSpy('parseError');
       ctrl.$parseError.addHandler(spy);
-      ctrl.$setViewValue('view after');
+      expect(function() {
+        ctrl.$setViewValue('view after');
+      }).toThrow();
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
       expect(spy).toHaveBeenCalledWith('parse failure');
