@@ -18,6 +18,7 @@ function NgModelController($scope, $element, $attrs, $parse) {
 
   this.$transforms =  new Transforms();
   this.$validity = new Validity();
+  this.$states = new StateManager($scope, $animate, this);
 
   this.$parseView = new EventList();
   this.$parseError = new EventList();
