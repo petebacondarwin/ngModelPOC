@@ -21,6 +21,7 @@ module.exports = function(config) {
       'src/EventList.js',
       'src/Transforms.js',
       'src/Validity.js',
+      'src/StateManager.js',
       'src/NgModelController.js',
       'src/InputController.js',
       'src/ngModelAdaptors.js',
