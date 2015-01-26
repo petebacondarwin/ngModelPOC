@@ -22,8 +22,16 @@ function NgModelDirective($defaultNgModelOptions) {
 };
 
 
+function nullFormRenameControl(control, name) {
+  control.$name = name;
+}
+
 var nullFormController = {
   $addControl: noop,
-  $$renameControl: noop,
-  $$removeControl: noop
-}
+  $$renameControl: nullFormRenameControl,
+  $removeControl: noop,
+  $setValidity: noop,
+  $setDirty: noop,
+  $setPristine: noop,
+  $setSubmitted: noop
+};
