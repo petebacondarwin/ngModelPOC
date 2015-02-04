@@ -96,7 +96,7 @@ InputController.prototype.$handleInputEvent = function(inputEvent, handler) {
   eventList.$$count += 1;
 
   return eventList.addHandler(handler);
-}
+};
 
 
 InputController.prototype.$triggerInputEvent = function(inputEvent, debounceDelay, event) {
