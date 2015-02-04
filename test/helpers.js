@@ -24,11 +24,11 @@ function resolveAllPromises() {
 
 function $timeout(fn, delay) {
   delay = delay || 0;
-  var deferred = {time:($timeout.now + delay), fn:fn, id: $timeout.deferredNextId}
+  var deferred = {time:($timeout.now + delay), fn:fn, id: $timeout.deferredNextId};
   $timeout.deferredFns.push(deferred);
   $timeout.deferredFns.sort(function(a, b) { return a.time - b.time;});
   return deferred;
-};
+}
 
 $timeout.deferredFns = [];
 $timeout.deferredNextId = 0;
@@ -144,7 +144,7 @@ Scope.prototype.$applyAsync = function(fn) {
 
 Scope.prototype.$eval = function(exp) {
   // Dummy
-}
+};
 
 
 Scope.prototype.$on = function() {
