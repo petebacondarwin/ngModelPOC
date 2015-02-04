@@ -10,7 +10,7 @@ describe('NgModelController', function() {
     scope = new Scope();
     element = new Element();
     attrs = new Attributes({ ngModel: ngModelExp });
-    ctrl = new NgModelController(scope, element, attrs, $parse);
+    ctrl = new NgModelController(scope, element, attrs, $parse, $interpolate);
 
     spyOn($animate, 'setClass');
   });
@@ -25,27 +25,22 @@ describe('NgModelController', function() {
 
 
     it('should trigger the formatModel event', function() {
-      var spy = jasmine.createSpy('formatModel');
-      ctrl.$formatModel.addHandler(spy);
+      var formatModelSpy = jasmine.createSpy('formatModel');
+      ctrl.$formatModel.addHandler(formatModelSpy);
       ctrl.$setModelValue('xxx');
-      expect(spy).toHaveBeenCalledWith('xxx', undefined);
+      expect(formatModelSpy).toHaveBeenCalledWith('xxx');
     });
 
 
-    it('should call Transforms#format', function() {
-      spyOn(ctrl.$transforms, 'format');
+    it('should $format', function() {
+      spyOn(ctrl, '$format');
       ctrl.$setModelValue('xxx');
-      expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', false);
-
-      ctrl.$transforms.format.calls.reset();
-      ctrl.$isCollection = true;
-      ctrl.$setModelValue('xxx');
-      expect(ctrl.$transforms.format).toHaveBeenCalledWith('xxx', true);
+      expect(ctrl.$format).toHaveBeenCalledWith('xxx');
     });
 
 
     it('should assign the result of Transforms#format to the $viewValue', function() {
-      spyOn(ctrl.$transforms, 'format').and.returnValue('yyy');
+      spyOn(ctrl, '$format').and.returnValue('yyy');
       ctrl.$setModelValue('xxx');
       expect(ctrl.$viewValue).toEqual('yyy');
     });
@@ -54,25 +49,25 @@ describe('NgModelController', function() {
     it('should trigger formatError event; reset values if there is a format error', function() {
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'format').and.callFake(function() { throw 'formatter failure'; });
+      spyOn(ctrl, '$format').and.callFake(function() { throw 'formatter failure'; });
 
-      var spy = jasmine.createSpy('formatError');
-      ctrl.$formatError.addHandler(spy);
+      var formatErrorSpy = jasmine.createSpy('formatError');
+      ctrl.$formatError.addHandler(formatErrorSpy);
       expect(function() {
         ctrl.$setModelValue('model after');
       }).toThrow();
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
-      expect(spy).toHaveBeenCalledWith('formatter failure');
+      expect(formatErrorSpy).toHaveBeenCalledWith('formatter failure');
     });
 
 
     it('should trigger the ViewValueChanged event if the format succeeded', function() {
-      var spy = jasmine.createSpy('ViewValueChanged');
-      ctrl.$viewValueChanged.addHandler(spy);
-      spyOn(ctrl.$transforms, 'format').and.returnValue('yyy');
+      var viewValueChangedSpy = jasmine.createSpy('ViewValueChanged');
+      ctrl.$viewValueChanged.addHandler(viewValueChangedSpy);
+      spyOn(ctrl, '$format').and.returnValue('yyy');
       ctrl.$setModelValue('xxx');
-      expect(spy).toHaveBeenCalledWith('yyy', undefined);
+      expect(viewValueChangedSpy).toHaveBeenCalledWith('yyy', undefined);
     });
   });
 
@@ -87,27 +82,22 @@ describe('NgModelController', function() {
 
 
     it('should trigger the parseView event', function() {
-      var spy = jasmine.createSpy('parseView');
-      ctrl.$parseView.addHandler(spy);
+      var parseViewSpy = jasmine.createSpy('parseView');
+      ctrl.$parseView.addHandler(parseViewSpy);
       ctrl.$setViewValue('xxx');
-      expect(spy).toHaveBeenCalledWith('xxx', undefined);
+      expect(parseViewSpy).toHaveBeenCalledWith('xxx');
     });
 
 
     it('should call Transforms#parse', function() {
-      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
+      spyOn(ctrl, '$parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
-      expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', false);
-
-      ctrl.$transforms.parse.calls.reset();
-      ctrl.$isCollection = true;
-      ctrl.$setViewValue('xxx');
-      expect(ctrl.$transforms.parse).toHaveBeenCalledWith('xxx', true);
+      expect(ctrl.$parse).toHaveBeenCalledWith('xxx');
     });
 
 
     it('should assign the result of Transforms#parse to the $modelValue', function() {
-      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
+      spyOn(ctrl, '$parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(ctrl.$modelValue).toEqual('yyy');
     });
@@ -116,23 +106,23 @@ describe('NgModelController', function() {
     it('should trigger parseError event; reset values if there is a parse error', function() {
       ctrl.$viewValue = 'view before';
       ctrl.$modelValue = 'model before';
-      spyOn(ctrl.$transforms, 'parse').and.callFake(function() { throw 'parse failure'; });
+      spyOn(ctrl, '$parse').and.callFake(function() { throw 'parse failure'; });
 
-      var spy = jasmine.createSpy('parseError');
-      ctrl.$parseError.addHandler(spy);
+      var parserErrorSpy = jasmine.createSpy('parseError');
+      ctrl.$parseError.addHandler(parserErrorSpy);
       expect(function() {
         ctrl.$setViewValue('view after');
       }).toThrow();
       expect(ctrl.$modelValue).toEqual('model before');
       expect(ctrl.$viewValue).toEqual('view before');
-      expect(spy).toHaveBeenCalledWith('parse failure');
+      expect(parserErrorSpy).toHaveBeenCalledWith('parse failure');
     });
 
 
     it('should trigger the ModelValueChanged event if the format succeeded', function() {
       var spy = jasmine.createSpy('ModelValueChanged');
       ctrl.$modelValueChanged.addHandler(spy);
-      spyOn(ctrl.$transforms, 'parse').and.returnValue('yyy');
+      spyOn(ctrl, '$parse').and.returnValue('yyy');
       ctrl.$setViewValue('xxx');
       expect(spy).toHaveBeenCalledWith('yyy', undefined);
     });

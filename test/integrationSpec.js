@@ -7,8 +7,13 @@ describe('USE CASE: date input', function() {
   };
   var dayNumberFn = function(value) { return isDefined(WEEKMAP[value]) ? WEEKMAP[value] : null; };
 
+  function logTransformEvent(eventName) {
+    ngModelCtrl[eventName].addHandler(function(value) {
+      log.push(eventName + ': "' + value + '"');
+    });
+  }
 
-  function logNgModelControllerEvent(eventName) {
+  function logChangedEvent(eventName) {
     ngModelCtrl[eventName].addHandler(function(newVal, oldVal) {
       log.push(eventName + ': from "' + oldVal + '" to "' + newVal + '"');
     });
@@ -46,7 +51,7 @@ describe('USE CASE: date input', function() {
 
     // Simulate an ngModel directive
     ngModelDirective = NgModelDirective(defaultNgModelOptions);
-    ngModelCtrl = new NgModelController(scope, element, attrs, $parse);
+    ngModelCtrl = new NgModelController(scope, element, attrs, $parse, $interpolate);
     // Run the ngModel prelink function
     ngModelDirective.link.pre(scope, element, attrs, [ngModelCtrl, null, null]);
 
@@ -60,17 +65,21 @@ describe('USE CASE: date input', function() {
 
     // Simulate a transform directive adding a transform
     // TODO: work out how to accommodate legacy directives that specify $parsers and $formatters
-    ngModelCtrl.$transforms.append('dayNumber', dayNumberFn, dayNumberFn);
+    ngModelCtrl.$parsers.push(dayNumberFn);
+    ngModelCtrl.$formatters.unshift(dayNumberFn);
 
 
 
     // Add some logging for tests
-    logNgModelControllerEvent('$modelValueChanged');
-    logNgModelControllerEvent('$parseView');
-    logNgModelControllerEvent('$parseError');
-    logNgModelControllerEvent('$formatModel');
-    logNgModelControllerEvent('$formatError');
-    logNgModelControllerEvent('$viewValueChanged');
+    logChangedEvent('$modelValueChanged');
+    logTransformEvent('$parseView');
+    logChangedEvent('$parseError');
+    logTransformEvent('$formatModel');
+    logChangedEvent('$formatError');
+    logChangedEvent('$viewValueChanged');
+
+    // Now run the post link function
+    ngModelDirective.link.post(scope, element, attrs, [ngModelCtrl, null, null]);
   }
 
 
@@ -112,7 +121,7 @@ describe('USE CASE: date input', function() {
     log = [];
     selectDate('Sunday');
     expect(log).toEqual([
-      '$parseView: from "undefined" to "Sunday"',
+      '$parseView: "Sunday"',
       '$modelValueChanged: from "undefined" to "6"'
     ]);
     expect(scope.dayNumber).toEqual(6);
@@ -121,7 +130,7 @@ describe('USE CASE: date input', function() {
     log = [];
     selectDate('Monday');
     expect(log).toEqual([
-      '$parseView: from "Sunday" to "Monday"',
+      '$parseView: "Monday"',
       '$modelValueChanged: from "6" to "0"'
     ]);
     expect(scope.dayNumber).toEqual(0);
@@ -135,7 +144,7 @@ describe('USE CASE: date input', function() {
     log = [];
     changeScope(5);
     expect(log).toEqual([
-      '$formatModel: from "undefined" to "5"',
+      '$formatModel: "5"',
       '$viewValueChanged: from "undefined" to "Saturday"'
     ]);
     expect(element.val()).toEqual('Saturday');
@@ -144,7 +153,7 @@ describe('USE CASE: date input', function() {
     log = [];
     changeScope(2);
     expect(log).toEqual([
-      '$formatModel: from "5" to "2"',
+      '$formatModel: "2"',
       '$viewValueChanged: from "Saturday" to "Wednesday"'
     ]);
     expect(element.val()).toEqual('Wednesday');
@@ -165,7 +174,7 @@ describe('USE CASE: date input', function() {
     log = [];
     selectDate('Monday');
     expect(log).toEqual([
-      '$parseView: from "undefined" to "Monday"',
+      '$parseView: "Monday"',
       '$modelValueChanged: from "undefined" to "0"'
     ]);
     expect(scope.dayNumber).toEqual(0);
@@ -175,7 +184,7 @@ describe('USE CASE: date input', function() {
     log = [];
     selectDate('Badday');
     expect(log).toEqual([
-      '$parseView: from "Monday" to "Badday"',
+      '$parseView: "Badday"',
       '$modelValueChanged: from "0" to "null"'
     ]);
     expect(scope.dayNumber).toEqual(null);
@@ -193,7 +202,7 @@ describe('USE CASE: date input', function() {
     // Provide a couple of view changes that will trigger unresolved validations
     selectDate('Monday');
     expect(log).toEqual([
-      '$parseView: from "undefined" to "Monday"',
+      '$parseView: "Monday"',
       '$modelValueChanged: from "undefined" to "0"'
     ]);
     expect(validations).toEqual({ '0': jasmine.any(Object) });
@@ -201,9 +210,9 @@ describe('USE CASE: date input', function() {
 
     selectDate('Tuesday');
     expect(log).toEqual([
-      '$parseView: from "undefined" to "Monday"',
+      '$parseView: "Monday"',
       '$modelValueChanged: from "undefined" to "0"',
-      '$parseView: from "Monday" to "Tuesday"',
+      '$parseView: "Tuesday"',
       '$modelValueChanged: from "0" to "1"'
     ]);
     expect(validations).toEqual({
@@ -289,8 +298,8 @@ describe('USE CASE: date input', function() {
 
     setup();
 
-    logNgModelControllerEvent('$dirtyChanged');
-    logNgModelControllerEvent('$pristineChanged');
+    logChangedEvent('$dirtyChanged');
+    logChangedEvent('$pristineChanged');
 
     expect(ngModelCtrl.$dirty).toBe(false);
     expect(ngModelCtrl.$pristine).toBe(true);
@@ -304,7 +313,7 @@ describe('USE CASE: date input', function() {
     expect(ngModelCtrl.$pristine).toBe(false);
 
     expect(log).toEqual([
-      '$parseView: from "undefined" to "Thursday"',
+      '$parseView: "Thursday"',
       '$modelValueChanged: from "undefined" to "3"',
       '$dirtyChanged: from "false" to "true"',
       '$pristineChanged: from "true" to "false"'
