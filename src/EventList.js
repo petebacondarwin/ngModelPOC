@@ -15,6 +15,21 @@ EventList.prototype.addHandler = function(handler) {
 };
 
 
+EventList.prototype.triggerOnDOMEvent = function(element, event, debounceDelay) {
+  var eventList = this;
+
+  function handler(event) {
+    eventList.debounce(debounceDelay);
+  }
+
+  element.on(event, handler);
+
+  return function() {
+    element.off(event, handler);
+  };
+};
+
+
 EventList.prototype.trigger = function() {
   var args = Array.prototype.splice.call(arguments,0);
   this.handlers.forEach(function(handler) {
