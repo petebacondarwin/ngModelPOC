@@ -30,4 +30,4 @@ EventList.prototype.debounce = function(debounceDelay) {
   this.pendingDebounce = $timeout(function() {
     eventList.trigger.apply(eventList, args);
   }, debounceDelay);
-}
+};
