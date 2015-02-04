@@ -123,17 +123,21 @@ Scope.prototype.$digest = function() {
   this.$$asyncFns = [];
 
   var isDirty = true;
+
+  var runHandler = function(watchObj) {
+    var nextValue = watchObj.watch(scope);
+    if (nextValue != watchObj.previousValue) {
+      isDirty = true;
+      watchObj.handler(nextValue, watchObj.previousValue);
+      watchObj.previousValue = nextValue;
+    }
+  };
+
   while(isDirty) {
     isDirty = false;
-    this.$$watches.forEach(function(watchObj) {
-      var nextValue = watchObj.watch(scope);
-      if (nextValue != watchObj.previousValue) {
-        isDirty = true;
-        watchObj.handler(nextValue, watchObj.previousValue);
-        watchObj.previousValue = nextValue;
-      }
-    })
+    this.$$watches.forEach(runHandler);
   }
+
   resolveAllPromises();
 };
 
