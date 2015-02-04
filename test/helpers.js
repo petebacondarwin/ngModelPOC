@@ -170,6 +170,14 @@ function $parse(expression) {
 }
 
 
+function $interpolate(text) {
+  // dummy interpolation service
+  return function(scope) {
+    return text;
+  };
+}
+
+
 
 function Attributes(attributes) {
   this.$$observers = {};
